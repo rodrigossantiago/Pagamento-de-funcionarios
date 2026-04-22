@@ -326,7 +326,10 @@ function sheetsGet(range){
     'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
     +'/values/'+encodeURIComponent(range),
     {headers:{Authorization:'Bearer '+accessToken}}
-  ).then(r=>r.json());
+  ).then(r=>{
+    if(!r.ok){var err=new Error('HTTP '+r.status);err.status=r.status;throw err;}
+    return r.json();
+  });
 }
 
 function sheetsUpdate(range,values){
@@ -334,11 +337,38 @@ function sheetsUpdate(range,values){
     'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
     +'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',
     {method:'PUT',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-     body:JSON.stringify({range,majorDimension:'ROWS',values})}
+     body:JSON.stringify({range:range,majorDimension:'ROWS',values:values})}
   ).then(r=>{
-    if(!r.ok){var err=new Error('HTTP '+r.status);err.status=r.status;throw err;}
+    if(!r.ok){
+      return r.json().then(body=>{
+        console.error('Sheets API erro',r.status,body);
+        var err=new Error(body.error&&body.error.message||'HTTP '+r.status);
+        err.status=r.status;err.body=body;throw err;
+      });
+    }
     return r.json();
   });
+}
+
+// salva tudo em uma única chamada batchUpdate
+async function sheetsBatchUpdate(allRanges){
+  var data=allRanges.map(function(item){
+    return{range:item.range,majorDimension:'ROWS',values:item.values};
+  });
+  var resp=await fetch(
+    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
+    +'/values:batchUpdate',
+    {method:'POST',
+     headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+     body:JSON.stringify({valueInputOption:'RAW',data:data})}
+  );
+  if(!resp.ok){
+    var body=await resp.json().catch(function(){return{};});
+    console.error('batchUpdate erro',resp.status,body);
+    var err=new Error(body.error&&body.error.message||'HTTP '+resp.status);
+    err.status=resp.status;throw err;
+  }
+  return resp.json();
 }
 
 async function loadFromSheets(){
@@ -379,35 +409,56 @@ async function loadFromSheets(){
 
 async function saveToSheets(){
   if(!accessToken||!CONFIG.SPREADSHEET_ID||CONFIG.SPREADSHEET_ID.includes('SEU_'))return;
-  if(isSaving)return; // evita chamadas simultâneas
+  if(isSaving){scheduleSave();return;}
   isSaving=true;
   setBadge('saving');
   try{
     var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
-    await sheetsUpdate(CONFIG.SHEET_NAME+'!A1:C1',[[
-      document.getElementById('numPessoas').value,
-      document.getElementById('valorDia').value,
-      document.getElementById('numDias').value
-    ]]);
-    await sheetsUpdate(CONFIG.SHEET_NAME+'!A2:F2',[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]);
-    var rows=[];
+    var nd=parseInt(document.getElementById('numDias').value)||26;
+    var vd=document.getElementById('valorDia').value;
+
+    // monta todas as linhas de pessoas
+    var pessoasRows=[];
     for(var i=0;i<np;i++){
       var pChecks={};
-      Object.keys(checks).forEach(k=>{if(k.startsWith(i+'_'))pChecks[k]=checks[k];});
-      rows.push([nomes[i]||'',cargos[i]||'',pixes[i]||'',valoresDia[i]||'',obs[i]||'',JSON.stringify(pChecks)]);
+      Object.keys(checks).forEach(function(k){if(k.startsWith(i+'_'))pChecks[k]=checks[k];});
+      pessoasRows.push([
+        nomes[i]||'',
+        cargos[i]||'',
+        pixes[i]||'',
+        valoresDia[i]||'',
+        obs[i]||'',
+        JSON.stringify(pChecks)
+      ]);
     }
-    await sheetsUpdate(CONFIG.SHEET_NAME+'!A3:F'+(2+np),rows);
+
+    // envia tudo em uma única requisição
+    await sheetsBatchUpdate([
+      {range:CONFIG.SHEET_NAME+'!A1:C1',   values:[[np,vd,nd]]},
+      {range:CONFIG.SHEET_NAME+'!A2:F2',   values:[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
+      {range:CONFIG.SHEET_NAME+'!A3:F'+(2+np), values:pessoasRows}
+    ]);
+
     setBadge('saved');
+    console.log('Salvo com sucesso',new Date().toLocaleTimeString());
   }catch(e){
-    console.error('Erro ao salvar:',e);
-    // se for 401, token expirou — tenta renovar silenciosamente
-    if(e.status===401||String(e).includes('401')){
+    console.error('Erro ao salvar:',e.message||e);
+    if(e.status===401){
+      // token expirou — renova silenciosamente e tenta salvar de novo
       accessToken=null;
       localStorage.removeItem('pagamento_gtoken');
-      initTokenClient(false);
+      showToast('Sessão expirada, reconectando…');
+      setTimeout(function(){initTokenClient(false);},500);
+    } else if(e.status===403){
+      setBadge('error');
+      showToast('Sem permissão na planilha. Verifique se compartilhou com sua conta.');
+    } else if(e.status===404){
+      setBadge('error');
+      showToast('Planilha não encontrada. Verifique o SPREADSHEET_ID.');
+    } else {
+      setBadge('error');
+      showToast('Erro ao salvar ('+( e.status||e.message||'desconhecido')+'). Verifique o console (F12).');
     }
-    setBadge('error');
-    showToast('Erro ao salvar. Tente novamente.');
   }finally{
     isSaving=false;
   }
