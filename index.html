@@ -200,50 +200,116 @@ var currentPeriod='all';
 var saveTimer=null;
 var accessToken=null;
 var tokenClient=null;
+var isSaving=false;
+
+// aguarda o script do Google carregar e tenta restaurar sessão
+window.addEventListener('load',function(){
+  var interval=setInterval(function(){
+    if(typeof google!=='undefined'&&google.accounts){
+      clearInterval(interval);
+      if(!tryRestoreSession()){
+        // nada — mostra tela de login normalmente
+      } else {
+        scheduleTokenRenewal();
+      }
+    }
+  },100);
+});
 
 // ── GOOGLE AUTH ───────────────────────────────────────────
 var SCOPES='https://www.googleapis.com/auth/spreadsheets';
+var TOKEN_KEY='pagamento_gtoken';
+var PROFILE_KEY='pagamento_gprofile';
 
 function signIn(){
   if(!CONFIG.CLIENT_ID||CONFIG.CLIENT_ID.includes('SEU_CLIENT')){
     showError('Configure o CLIENT_ID no topo do arquivo antes de usar.');return;
   }
-  if(!tokenClient){
-    tokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:CONFIG.CLIENT_ID,
-      scope:SCOPES,
-      callback:onTokenReceived
-    });
-  }
+  initTokenClient(true);
+}
+
+function initTokenClient(prompt){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CONFIG.CLIENT_ID,
+    scope:SCOPES,
+    prompt:prompt?'':'none',
+    callback:onTokenReceived
+  });
   tokenClient.requestAccessToken();
 }
 
 function onTokenReceived(resp){
-  if(resp.error){showError('Erro ao autenticar: '+resp.error);return;}
+  if(resp.error){
+    // se falhou sem prompt, tenta com prompt
+    if(resp.error==='interaction_required'||resp.error==='login_required'){
+      initTokenClient(true);return;
+    }
+    showError('Erro ao autenticar: '+resp.error);return;
+  }
   accessToken=resp.access_token;
-  // pegar perfil do usuário via tokeninfo
+  // salvar token com expiração
+  var expiry=Date.now()+(parseInt(resp.expires_in||3600)-60)*1000;
+  localStorage.setItem(TOKEN_KEY,JSON.stringify({token:accessToken,expiry:expiry}));
+
   fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
     headers:{Authorization:'Bearer '+accessToken}
   }).then(r=>r.json()).then(profile=>{
-    document.getElementById('userName').textContent=profile.name||profile.email;
-    document.getElementById('userAvatar').src=profile.picture||'';
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('appScreen').style.display='block';
-    document.getElementById('topbar').style.display='flex';
+    localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));
+    showApp(profile);
     loadFromSheets();
   }).catch(()=>{
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('appScreen').style.display='block';
-    document.getElementById('topbar').style.display='flex';
+    showApp(null);
     loadFromSheets();
   });
+}
+
+function showApp(profile){
+  if(profile){
+    document.getElementById('userName').textContent=profile.name||profile.email||'';
+    document.getElementById('userAvatar').src=profile.picture||'';
+  }
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  document.getElementById('topbar').style.display='flex';
 }
 
 function signOut(){
   if(accessToken)google.accounts.oauth2.revoke(accessToken,()=>{});
   accessToken=null;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(PROFILE_KEY);
   document.getElementById('appScreen').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+}
+
+// tenta restaurar sessão ao carregar a página
+function tryRestoreSession(){
+  try{
+    var saved=localStorage.getItem(TOKEN_KEY);
+    if(!saved)return false;
+    var obj=JSON.parse(saved);
+    if(!obj.token||Date.now()>obj.expiry)return false;
+    accessToken=obj.token;
+    var profile=JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}');
+    showApp(profile);
+    loadFromSheets();
+    return true;
+  }catch(e){return false;}
+}
+
+// renova token silenciosamente antes de expirar
+function scheduleTokenRenewal(){
+  try{
+    var saved=localStorage.getItem(TOKEN_KEY);
+    if(!saved)return;
+    var obj=JSON.parse(saved);
+    var msLeft=obj.expiry-Date.now();
+    if(msLeft<0)return;
+    // renova 2 minutos antes de expirar
+    setTimeout(()=>{
+      if(accessToken)initTokenClient(false);
+    },Math.max(msLeft-120000,0));
+  }catch(e){}
 }
 
 function showError(msg){
@@ -269,7 +335,10 @@ function sheetsUpdate(range,values){
     +'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',
     {method:'PUT',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
      body:JSON.stringify({range,majorDimension:'ROWS',values})}
-  ).then(r=>r.json());
+  ).then(r=>{
+    if(!r.ok){var err=new Error('HTTP '+r.status);err.status=r.status;throw err;}
+    return r.json();
+  });
 }
 
 async function loadFromSheets(){
@@ -310,21 +379,19 @@ async function loadFromSheets(){
 
 async function saveToSheets(){
   if(!accessToken||!CONFIG.SPREADSHEET_ID||CONFIG.SPREADSHEET_ID.includes('SEU_'))return;
+  if(isSaving)return; // evita chamadas simultâneas
+  isSaving=true;
   setBadge('saving');
   try{
     var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
-    // config row
     await sheetsUpdate(CONFIG.SHEET_NAME+'!A1:C1',[[
       document.getElementById('numPessoas').value,
       document.getElementById('valorDia').value,
       document.getElementById('numDias').value
     ]]);
-    // label row
     await sheetsUpdate(CONFIG.SHEET_NAME+'!A2:F2',[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]);
-    // pessoas rows
     var rows=[];
     for(var i=0;i<np;i++){
-      // extrair só os checks desta pessoa
       var pChecks={};
       Object.keys(checks).forEach(k=>{if(k.startsWith(i+'_'))pChecks[k]=checks[k];});
       rows.push([nomes[i]||'',cargos[i]||'',pixes[i]||'',valoresDia[i]||'',obs[i]||'',JSON.stringify(pChecks)]);
@@ -332,8 +399,17 @@ async function saveToSheets(){
     await sheetsUpdate(CONFIG.SHEET_NAME+'!A3:F'+(2+np),rows);
     setBadge('saved');
   }catch(e){
-    console.error(e);setBadge('error');
-    showToast('Erro ao salvar na planilha.');
+    console.error('Erro ao salvar:',e);
+    // se for 401, token expirou — tenta renovar silenciosamente
+    if(e.status===401||String(e).includes('401')){
+      accessToken=null;
+      localStorage.removeItem('pagamento_gtoken');
+      initTokenClient(false);
+    }
+    setBadge('error');
+    showToast('Erro ao salvar. Tente novamente.');
+  }finally{
+    isSaving=false;
   }
 }
 
