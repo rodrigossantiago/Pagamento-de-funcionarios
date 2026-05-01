@@ -4,19 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pagamento da Equipe</title>
-
-<!-- =====================================================
-     CONFIGURAÇÃO — preencha antes de usar
-     ===================================================== -->
 <script>
   const CONFIG = {
     CLIENT_ID: '318681534200-c679c4dm1n0ahrja9sb43mjnuqgse0u4.apps.googleusercontent.com',
     SPREADSHEET_ID: '16DxjaQXOYY3_gecR3tLMnsZi-oiiQ8ffA8nU0QFstwM',
-    SHEET_NAME: 'Dados',
+    // Nome de cada aba na planilha — deve ser IGUAL ao nome da aba no Google Sheets
+    SETORES: [
+      {id:'bar',       label:'🍺 Bar',       sheet:'Bar'},
+      {id:'narguile',  label:'💨 Narguile',  sheet:'Narguile'},
+      {id:'limpeza',   label:'🧹 Limpeza',   sheet:'Limpeza'},
+      {id:'seguranca', label:'🔒 Segurança', sheet:'Seguranca'},
+    ]
   };
 </script>
-<!-- ===================================================== -->
-
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a18;min-height:100vh;padding:1.5rem 1rem}
@@ -29,15 +29,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a1
 .btn-google{display:flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;border:1px solid #d3d1c7;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);transition:box-shadow .15s}
 .btn-google:hover{box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .btn-google svg{width:20px;height:20px}
+#loginError{color:#c0392b;font-size:12px;display:none}
 
 /* TOPBAR */
-#topbar{display:none;align-items:center;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap}
+#topbar{display:none;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap}
 #topbar h1{font-size:17px;font-weight:600;flex:1}
 .user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:#5f5e5a}
 .user-info img{width:28px;height:28px;border-radius:50%;border:1px solid #e8e8e2}
 .save-badge{font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;background:#e6f7f1;color:#0F6E56;border:1px solid #b2e4d4;transition:all .3s}
 .save-badge.saving{background:#fff8e1;color:#b07d00;border-color:#f5d87a}
 .save-badge.error{background:#fff0f0;color:#c0392b;border-color:#f5c0c0}
+
+/* SETOR TABS */
+.setor-tabs{display:flex;gap:6px;margin-bottom:1.2rem;flex-wrap:wrap}
+.setor-tab{padding:8px 20px;border-radius:8px;border:2px solid #e8e8e2;background:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:#5f5e5a}
+.setor-tab:hover{border-color:#1D9E75;color:#1D9E75}
+.setor-tab.active{background:#1D9E75;color:#fff;border-color:#1D9E75}
 
 /* CONFIG BAR */
 .config-bar{background:#fff;border:1px solid #e8e8e2;border-radius:10px;padding:12px 16px;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
@@ -106,26 +113,28 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
 .bar-wrap{width:120px;height:6px;background:#e8e8e2;border-radius:3px;display:inline-block;vertical-align:middle;margin-left:6px}
 .bar-fill{height:6px;background:#1D9E75;border-radius:3px}
 .note{font-size:11px;color:#b4b2a9;margin-top:1rem;text-align:center}
-
-/* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:#1a1a18;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
 .toast.show{opacity:1}
+.loading-overlay{position:fixed;inset:0;background:rgba(245,245,240,.85);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:#555;gap:10px}
+.spinner{width:20px;height:20px;border:2px solid #d3d1c7;border-top-color:#1D9E75;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+<div class="container">
 
 <!-- LOGIN -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px">
   <h1>💰 Pagamento da Equipe</h1>
-  <p>Entre com sua conta Google para acessar e sincronizar os dados na planilha.</p>
+  <p>Entre com sua conta Google para acessar e sincronizar os dados.</p>
   <button class="btn-google" onclick="signIn()">
     <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.6 5.5 2.7 13.5l7.8 6C12.4 13.2 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.5A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.7-4.5l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.8-6.2z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.6 42.5 14.6 48 24 48z"/></svg>
     Entrar com Google
   </button>
-  <p id="loginError" style="color:#c0392b;font-size:12px;display:none"></p>
+  <p id="loginError"></p>
 </div>
 
-<!-- APP (hidden until login) -->
+<!-- APP -->
 <div id="appScreen" style="display:none">
   <div id="topbar">
     <h1>💰 Pagamento da Equipe</h1>
@@ -136,6 +145,9 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
       <button class="btn" onclick="signOut()" style="margin-left:4px">Sair</button>
     </div>
   </div>
+
+  <!-- ABAS DOS SETORES -->
+  <div class="setor-tabs" id="setorTabs"></div>
 
   <div class="config-bar">
     <div class="config-group"><label>Pessoas:</label><input type="number" id="numPessoas" value="15" min="1" max="20"></div>
@@ -165,11 +177,7 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
   </div>
 
   <div class="table-wrap">
-    <table id="tabela">
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-      <tfoot id="tfoot"></tfoot>
-    </table>
+    <table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table>
   </div>
 
   <div class="period-summary">
@@ -184,83 +192,131 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
       <tbody id="ps-body"></tbody>
     </table>
   </div>
-  <p class="note">Clique nos campos para editar · Dados salvos automaticamente no Google Sheets</p>
+  <p class="note">Clique nas abas para trocar de setor · Dados de cada setor salvos em abas separadas no Google Sheets</p>
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="loadingOverlay" class="loading-overlay" style="display:none">
+  <div class="spinner"></div><span id="loadingMsg">Carregando…</span>
+</div>
 
-<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
-// ── ESTADO ────────────────────────────────────────────────
+// ── ESTADO GLOBAL ─────────────────────────────────────────
 var NUM_MAX=20;
-var nomes=[],pixes=[],checks={},obs=[],valoresDia=[],cargos=[];
+var currentSetor=0; // índice em CONFIG.SETORES
 var currentPeriod='all';
 var saveTimer=null;
 var accessToken=null;
 var tokenClient=null;
 var isSaving=false;
+var TOKEN_KEY='pagamento_gtoken';
+var PROFILE_KEY='pagamento_gprofile';
+var SETOR_KEY='pagamento_setor';
 
-// aguarda o script do Google carregar e tenta restaurar sessão
+// estado por setor: array indexado por setor
+var estado=CONFIG.SETORES.map(function(){
+  return {nomes:[],pixes:[],obs:[],valoresDia:[],cargos:[],checks:{},
+          numPessoas:15,valorDia:130,numDias:26};
+});
+
+// ── INIT ──────────────────────────────────────────────────
 window.addEventListener('load',function(){
+  buildSetorTabs();
   var interval=setInterval(function(){
     if(typeof google!=='undefined'&&google.accounts){
       clearInterval(interval);
-      if(!tryRestoreSession()){
-        // nada — mostra tela de login normalmente
-      } else {
-        scheduleTokenRenewal();
-      }
+      if(!tryRestoreSession()){}
+      else scheduleTokenRenewal();
     }
   },100);
 });
 
-// ── GOOGLE AUTH ───────────────────────────────────────────
+function buildSetorTabs(){
+  var tabs=document.getElementById('setorTabs');
+  CONFIG.SETORES.forEach(function(s,i){
+    var btn=document.createElement('button');
+    btn.className='setor-tab'+(i===0?' active':'');
+    btn.textContent=s.label;
+    btn.onclick=function(){switchSetor(i);};
+    tabs.appendChild(btn);
+  });
+}
+
+function switchSetor(idx){
+  saveCurrentConfig();
+  currentSetor=idx;
+  localStorage.setItem(SETOR_KEY,idx);
+  document.querySelectorAll('.setor-tab').forEach(function(b,i){
+    b.classList.toggle('active',i===idx);
+  });
+  loadCurrentConfig();
+  loadFromSheets(idx);
+}
+
+// salva config dos inputs no estado do setor atual
+function saveCurrentConfig(){
+  var s=estado[currentSetor];
+  s.numPessoas=parseInt(document.getElementById('numPessoas').value)||15;
+  s.valorDia=parseInt(document.getElementById('valorDia').value)||130;
+  s.numDias=parseInt(document.getElementById('numDias').value)||26;
+}
+
+// carrega config do estado do setor atual nos inputs
+function loadCurrentConfig(){
+  var s=estado[currentSetor];
+  document.getElementById('numPessoas').value=s.numPessoas||15;
+  document.getElementById('valorDia').value=s.valorDia||130;
+  document.getElementById('numDias').value=s.numDias||26;
+  currentPeriod='all';
+  document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active');});
+  var allBtn=document.querySelector('[data-period="all"]');
+  if(allBtn)allBtn.classList.add('active');
+}
+
+function initDefaults(idx){
+  var s=estado[idx];
+  s.nomes=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.cargos=[];s.checks={};
+  for(var i=0;i<NUM_MAX;i++){
+    s.nomes.push('Pessoa '+(i+1));s.pixes.push('');
+    s.obs.push('');s.valoresDia.push('');s.cargos.push('');
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────────
 var SCOPES='https://www.googleapis.com/auth/spreadsheets';
-var TOKEN_KEY='pagamento_gtoken';
-var PROFILE_KEY='pagamento_gprofile';
 
 function signIn(){
-  if(!CONFIG.CLIENT_ID||CONFIG.CLIENT_ID.includes('SEU_CLIENT')){
-    showError('Configure o CLIENT_ID no topo do arquivo antes de usar.');return;
-  }
+  if(!CONFIG.CLIENT_ID||CONFIG.CLIENT_ID.includes('SEU_')){showError('Configure o CLIENT_ID.');return;}
   initTokenClient(true);
 }
 
 function initTokenClient(prompt){
   tokenClient=google.accounts.oauth2.initTokenClient({
-    client_id:CONFIG.CLIENT_ID,
-    scope:SCOPES,
-    prompt:prompt?'':'none',
-    callback:onTokenReceived
+    client_id:CONFIG.CLIENT_ID,scope:SCOPES,
+    prompt:prompt?'':'none',callback:onTokenReceived
   });
   tokenClient.requestAccessToken();
 }
 
 function onTokenReceived(resp){
   if(resp.error){
-    // se falhou sem prompt, tenta com prompt
-    if(resp.error==='interaction_required'||resp.error==='login_required'){
-      initTokenClient(true);return;
-    }
-    showError('Erro ao autenticar: '+resp.error);return;
+    if(resp.error==='interaction_required'||resp.error==='login_required'){initTokenClient(true);return;}
+    showError('Erro: '+resp.error);return;
   }
   accessToken=resp.access_token;
-  // salvar token com expiração
   var expiry=Date.now()+(parseInt(resp.expires_in||3600)-60)*1000;
   localStorage.setItem(TOKEN_KEY,JSON.stringify({token:accessToken,expiry:expiry}));
-
-  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
-    headers:{Authorization:'Bearer '+accessToken}
-  }).then(r=>r.json()).then(profile=>{
-    localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));
-    showApp(profile);
-    loadFromSheets();
-  }).catch(()=>{
-    showApp(null);
-    loadFromSheets();
-  });
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}})
+    .then(function(r){return r.json();}).then(function(p){
+      localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
+      showApp(p);
+      var saved=parseInt(localStorage.getItem(SETOR_KEY)||'0');
+      currentSetor=saved;
+      document.querySelectorAll('.setor-tab').forEach(function(b,i){b.classList.toggle('active',i===saved);});
+      loadCurrentConfig();
+      loadFromSheets(currentSetor);
+    }).catch(function(){showApp(null);loadFromSheets(currentSetor);});
 }
 
 function showApp(profile){
@@ -274,15 +330,13 @@ function showApp(profile){
 }
 
 function signOut(){
-  if(accessToken)google.accounts.oauth2.revoke(accessToken,()=>{});
+  if(accessToken)google.accounts.oauth2.revoke(accessToken,function(){});
   accessToken=null;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(PROFILE_KEY);
+  localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(PROFILE_KEY);
   document.getElementById('appScreen').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
 }
 
-// tenta restaurar sessão ao carregar a página
 function tryRestoreSession(){
   try{
     var saved=localStorage.getItem(TOKEN_KEY);
@@ -292,23 +346,20 @@ function tryRestoreSession(){
     accessToken=obj.token;
     var profile=JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}');
     showApp(profile);
-    loadFromSheets();
+    var si=parseInt(localStorage.getItem(SETOR_KEY)||'0');
+    currentSetor=si;
+    document.querySelectorAll('.setor-tab').forEach(function(b,i){b.classList.toggle('active',i===si);});
+    loadCurrentConfig();
+    loadFromSheets(currentSetor);
     return true;
   }catch(e){return false;}
 }
 
-// renova token silenciosamente antes de expirar
 function scheduleTokenRenewal(){
   try{
-    var saved=localStorage.getItem(TOKEN_KEY);
-    if(!saved)return;
-    var obj=JSON.parse(saved);
-    var msLeft=obj.expiry-Date.now();
-    if(msLeft<0)return;
-    // renova 2 minutos antes de expirar
-    setTimeout(()=>{
-      if(accessToken)initTokenClient(false);
-    },Math.max(msLeft-120000,0));
+    var obj=JSON.parse(localStorage.getItem(TOKEN_KEY)||'{}');
+    var ms=obj.expiry-Date.now();
+    if(ms>0)setTimeout(function(){if(accessToken)initTokenClient(false);},Math.max(ms-120000,0));
   }catch(e){}
 }
 
@@ -318,179 +369,127 @@ function showError(msg){
 }
 
 // ── SHEETS API ────────────────────────────────────────────
-var RANGE_CONFIG=CONFIG.SHEET_NAME+'!A1:C1';  // numPessoas,valorDia,numDias
-var RANGE_PESSOAS=CONFIG.SHEET_NAME+'!A3:F';   // nomes,cargos,pixes,valoresDia,obs,checks(json)
+function R(setor,a1){return CONFIG.SETORES[setor].sheet+'!'+a1;}
 
 function sheetsGet(range){
-  // não encoda o range inteiro — só passa direto
   return fetch(
-    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
-    +'/values/'+range,
+    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID+'/values/'+range,
     {headers:{Authorization:'Bearer '+accessToken}}
-  ).then(r=>{
-    if(!r.ok){var err=new Error('HTTP '+r.status);err.status=r.status;throw err;}
+  ).then(function(r){
+    if(!r.ok){var e=new Error('HTTP '+r.status);e.status=r.status;throw e;}
     return r.json();
   });
 }
 
-function sheetsUpdate(range,values){
+function sheetsBatchUpdate(data){
   return fetch(
-    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
-    +'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',
-    {method:'PUT',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-     body:JSON.stringify({range:range,majorDimension:'ROWS',values:values})}
-  ).then(r=>{
+    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID+'/values:batchUpdate',
+    {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+     body:JSON.stringify({valueInputOption:'RAW',data:data})}
+  ).then(function(r){
     if(!r.ok){
-      return r.json().then(body=>{
-        console.error('Sheets API erro',r.status,body);
-        var err=new Error(body.error&&body.error.message||'HTTP '+r.status);
-        err.status=r.status;err.body=body;throw err;
+      return r.json().then(function(b){
+        console.error('Sheets erro',r.status,JSON.stringify(b));
+        var e=new Error(b.error&&b.error.message||'HTTP '+r.status);
+        e.status=r.status;throw e;
       });
     }
     return r.json();
   });
 }
 
-// salva tudo em uma única chamada batchUpdate
-async function sheetsBatchUpdate(allRanges){
-  var data=allRanges.map(function(item){
-    return{range:item.range,majorDimension:'ROWS',values:item.values};
-  });
-  var resp=await fetch(
-    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID
-    +'/values:batchUpdate',
-    {method:'POST',
-     headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-     body:JSON.stringify({valueInputOption:'RAW',data:data})}
-  );
-  if(!resp.ok){
-    var body=await resp.json().catch(function(){return{};});
-    console.error('batchUpdate erro',resp.status,JSON.stringify(body));
-    var err=new Error(body.error&&body.error.message||'HTTP '+resp.status);
-    err.status=resp.status;throw err;
-  }
-  return resp.json();
-}
-
-// monta range seguro: Sheet!A1:B2
-function R(a1){return CONFIG.SHEET_NAME+'!'+a1;}
-
-async function loadFromSheets(){
-  if(!CONFIG.SPREADSHEET_ID||CONFIG.SPREADSHEET_ID.includes('SEU_')){
-    showToast('⚠ Configure o SPREADSHEET_ID no arquivo');
-    initDefaults();buildTable();return;
-  }
-  setBadge('loading');
+async function loadFromSheets(idx){
+  if(!accessToken)return;
+  showLoading('Carregando '+CONFIG.SETORES[idx].label+'…');
+  initDefaults(idx);
   try{
-    // linha 1: config
-    var cfg=await sheetsGet(CONFIG.SHEET_NAME+'!A1:C1');
+    var cfg=await sheetsGet(R(idx,'A1:C1'));
     var cfgRow=(cfg.values&&cfg.values[0])||[];
-    if(cfgRow[0])document.getElementById('numPessoas').value=cfgRow[0];
-    if(cfgRow[1])document.getElementById('valorDia').value=cfgRow[1];
-    if(cfgRow[2])document.getElementById('numDias').value=cfgRow[2];
+    var s=estado[idx];
+    if(cfgRow[0])s.numPessoas=parseInt(cfgRow[0]);
+    if(cfgRow[1])s.valorDia=parseInt(cfgRow[1]);
+    if(cfgRow[2])s.numDias=parseInt(cfgRow[2]);
 
-    // linha 3+: pessoas
-    var ppl=await sheetsGet(CONFIG.SHEET_NAME+'!A3:F');
+    var ppl=await sheetsGet(R(idx,'A3:F'));
     var rows=(ppl.values)||[];
-    initDefaults();
-    rows.forEach((row,i)=>{
+    rows.forEach(function(row,i){
       if(i>=NUM_MAX)return;
-      nomes[i]=row[0]||nomes[i];
-      cargos[i]=row[1]||'';
-      pixes[i]=row[2]||'';
-      valoresDia[i]=row[3]||'';
-      obs[i]=row[4]||'';
-      try{if(row[5])Object.assign(checks,JSON.parse(row[5]));}catch(e){}
+      s.nomes[i]=row[0]||s.nomes[i];
+      s.cargos[i]=row[1]||'';
+      s.pixes[i]=row[2]||'';
+      s.valoresDia[i]=row[3]||'';
+      s.obs[i]=row[4]||'';
+      try{if(row[5])Object.assign(s.checks,JSON.parse(row[5]));}catch(e){}
     });
-    buildTable();
+    if(idx===currentSetor){loadCurrentConfig();buildTable();}
     setBadge('saved');
   }catch(e){
-    console.error(e);
-    showToast('Erro ao carregar planilha. Verifique as configurações.');
-    initDefaults();buildTable();setBadge('error');
-  }
+    console.error('Erro ao carregar setor',CONFIG.SETORES[idx].label,e);
+    if(idx===currentSetor)buildTable();
+    setBadge('error');
+    showToast('Erro ao carregar '+CONFIG.SETORES[idx].label+'. Verifique o nome da aba na planilha.');
+  }finally{hideLoading();}
 }
 
 async function saveToSheets(){
-  if(!accessToken||!CONFIG.SPREADSHEET_ID||CONFIG.SPREADSHEET_ID.includes('SEU_'))return;
-  if(isSaving){scheduleSave();return;}
-  isSaving=true;
-  setBadge('saving');
+  if(!accessToken||isSaving)return;
+  isSaving=true;setBadge('saving');
+  var idx=currentSetor;
+  saveCurrentConfig();
+  var s=estado[idx];
+  var np=Math.min(s.numPessoas||15,NUM_MAX);
   try{
-    var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
-    var nd=parseInt(document.getElementById('numDias').value)||26;
-    var vd=document.getElementById('valorDia').value;
-
-    // monta todas as linhas de pessoas
-    var pessoasRows=[];
+    var rows=[];
     for(var i=0;i<np;i++){
-      var pChecks={};
-      Object.keys(checks).forEach(function(k){if(k.startsWith(i+'_'))pChecks[k]=checks[k];});
-      pessoasRows.push([
-        nomes[i]||'',
-        cargos[i]||'',
-        pixes[i]||'',
-        valoresDia[i]||'',
-        obs[i]||'',
-        JSON.stringify(pChecks)
-      ]);
+      var pc={};
+      Object.keys(s.checks).forEach(function(k){if(k.startsWith(i+'_'))pc[k]=s.checks[k];});
+      rows.push([s.nomes[i]||'',s.cargos[i]||'',s.pixes[i]||'',
+                 s.valoresDia[i]||'',s.obs[i]||'',JSON.stringify(pc)]);
     }
-
-    // envia tudo em uma única requisição
     await sheetsBatchUpdate([
-      {range:R('A1:C1'),        values:[[np,vd,nd]]},
-      {range:R('A2:F2'),        values:[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
-      {range:R('A3:F'+(2+np)), values:pessoasRows}
+      {range:R(idx,'A1:C1'),       values:[[np,s.valorDia,s.numDias]]},
+      {range:R(idx,'A2:F2'),       values:[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
+      {range:R(idx,'A3:F'+(2+np)),values:rows}
     ]);
-
     setBadge('saved');
-    console.log('Salvo com sucesso',new Date().toLocaleTimeString());
   }catch(e){
-    console.error('Erro ao salvar:',e.message||e);
+    setBadge('error');
     if(e.status===401){
-      // token expirou — renova silenciosamente e tenta salvar de novo
-      accessToken=null;
-      localStorage.removeItem('pagamento_gtoken');
+      accessToken=null;localStorage.removeItem(TOKEN_KEY);
       showToast('Sessão expirada, reconectando…');
       setTimeout(function(){initTokenClient(false);},500);
     } else if(e.status===403){
-      setBadge('error');
-      showToast('Sem permissão na planilha. Verifique se compartilhou com sua conta.');
-    } else if(e.status===404){
-      setBadge('error');
-      showToast('Planilha não encontrada. Verifique o SPREADSHEET_ID.');
+      showToast('Sem permissão na planilha.');
+    } else if(e.status===404||String(e.message).includes('parse range')){
+      showToast('Aba "'+CONFIG.SETORES[idx].sheet+'" não encontrada na planilha. Crie a aba com esse nome.');
     } else {
-      setBadge('error');
-      showToast('Erro ao salvar ('+( e.status||e.message||'desconhecido')+'). Verifique o console (F12).');
+      showToast('Erro ao salvar ('+( e.status||e.message||'?')+')');
     }
-  }finally{
-    isSaving=false;
-  }
+  }finally{isSaving=false;}
 }
 
-function setBadge(state){
-  var b=document.getElementById('saveBadge');
-  if(!b)return;
-  if(state==='saving'){b.textContent='⏳ Salvando…';b.className='save-badge saving';}
-  else if(state==='saved'){b.textContent='✓ Salvo no Sheets';b.className='save-badge';}
-  else if(state==='loading'){b.textContent='⬇ Carregando…';b.className='save-badge saving';}
-  else{b.textContent='⚠ Erro ao salvar';b.className='save-badge error';}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveToSheets,800);}
+
+function setBadge(st){
+  var b=document.getElementById('saveBadge');if(!b)return;
+  if(st==='saving'){b.textContent='⏳ Salvando…';b.className='save-badge saving';}
+  else if(st==='saved'){b.textContent='✓ Salvo';b.className='save-badge';}
+  else if(st==='loading'){b.textContent='⬇ Carregando…';b.className='save-badge saving';}
+  else{b.textContent='⚠ Erro';b.className='save-badge error';}
 }
 
-function scheduleSave(){
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(saveToSheets,800);
+function showLoading(msg){
+  document.getElementById('loadingMsg').textContent=msg||'Carregando…';
+  document.getElementById('loadingOverlay').style.display='flex';
 }
-
-// ── INIT ──────────────────────────────────────────────────
-function initDefaults(){
-  nomes=[];pixes=[];obs=[];valoresDia=[];cargos=[];checks={};
-  for(var i=0;i<NUM_MAX;i++){
-    nomes.push('Pessoa '+(i+1));pixes.push('');obs.push('');valoresDia.push('');cargos.push('');
-  }
+function hideLoading(){document.getElementById('loadingOverlay').style.display='none';}
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},4000);
 }
 
 // ── HELPERS ───────────────────────────────────────────────
+function S(){return estado[currentSetor];}
 function getKey(p,d){return p+'_'+d;}
 function semana(d){return d<=7?1:d<=14?2:d<=21?3:4;}
 function inPeriod(d){return currentPeriod==='all'||semana(d)===parseInt(currentPeriod);}
@@ -499,24 +498,19 @@ function periodRange(){
   if(currentPeriod==='all')return{s:1,e:nd};
   var s=[0,1,8,15,22][parseInt(currentPeriod)];
   var e=[0,7,14,21,nd][parseInt(currentPeriod)];
-  return{s,e:Math.min(e,nd)};
+  return{s:s,e:Math.min(e,nd)};
 }
 function getValorPessoa(pi){
   var def=parseInt(document.getElementById('valorDia').value)||130;
-  return(valoresDia[pi]!=null&&valoresDia[pi]!=='')?parseInt(valoresDia[pi]):def;
-}
-
-// ── TOAST ─────────────────────────────────────────────────
-function showToast(msg){
-  var t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  var v=S().valoresDia[pi];
+  return(v!=null&&v!=='')?parseInt(v):def;
 }
 
 // ── EDIÇÃO GENÉRICA ───────────────────────────────────────
-function makeEditable(cellId,arr,pi,opts){
+function makeEditable(cellId,arrKey,pi,opts){
   var cell=document.getElementById(cellId);
   if(!cell||cell.querySelector('input'))return;
+  var arr=S()[arrKey];
   var cur=arr[pi]||'';
   cell.classList.add(opts.editClass||'editing');
   var inp=document.createElement('input');
@@ -524,8 +518,7 @@ function makeEditable(cellId,arr,pi,opts){
   inp.value=cur;inp.maxLength=opts.maxLen||40;
   if(opts.type)inp.type=opts.type;
   if(opts.placeholder)inp.placeholder=opts.placeholder;
-  cell.innerHTML='';cell.appendChild(inp);
-  inp.focus();inp.select();
+  cell.innerHTML='';cell.appendChild(inp);inp.focus();inp.select();
   function save(){
     var v=inp.value.trim();
     if(opts.type==='number'){var n=parseInt(v);v=(n&&!isNaN(n))?String(n):'';}
@@ -536,65 +529,26 @@ function makeEditable(cellId,arr,pi,opts){
     scheduleSave();
   }
   inp.addEventListener('blur',save);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=cur;inp.blur();}});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=cur;inp.blur();}});
 }
 
-function editName(pi){
-  makeEditable('namecell_'+pi,nomes,pi,{
-    maxLen:18,
-    render:(cell,v)=>{cell.textContent=v||'Pessoa '+(pi+1);}
-  });
-}
-function editCargo(pi){
-  makeEditable('cargocell_'+pi,cargos,pi,{
-    maxLen:24,placeholder:'Ex: Pedreiro',
-    render:(cell,v)=>{
-      cell.className=v?'cargo-cell has-cargo':'cargo-cell';
-      cell.textContent=v||'+ cargo';cell.title=v||'Adicionar cargo';
-    }
-  });
-}
-function editPix(pi){
-  makeEditable('pixcell_'+pi,pixes,pi,{
-    maxLen:60,placeholder:'CPF, e-mail ou tel.',
-    render:(cell,v)=>{
-      cell.className=v?'pix-cell has-pix':'pix-cell';
-      cell.textContent=v||'+ pix';cell.title=v||'Adicionar pix';
-    }
-  });
-}
-function editValor(pi){
-  makeEditable('valorcell_'+pi,valoresDia,pi,{
-    type:'number',maxLen:6,inputClass:'valor-input',editClass:'editing-valor',
-    render:(cell,v)=>{
-      var def=parseInt(document.getElementById('valorDia').value)||130;
-      var val=v?parseInt(v):def;
-      cell.className=v?'valor-cell':'valor-cell default-valor';
-      cell.textContent='R$ '+val;
-    },
-    afterSave:()=>updateSums()
-  });
-}
-function editObs(pi){
-  makeEditable('obscell_'+pi,obs,pi,{
-    maxLen:80,placeholder:'Anotação…',editClass:'editing-obs',
-    render:(cell,v)=>{
-      cell.className=v?'obs-cell has-obs':'obs-cell';
-      cell.textContent=v||'+ obs';cell.title=v||'Adicionar observação';
-    }
-  });
-}
+function editName(pi){makeEditable('namecell_'+pi,'nomes',pi,{maxLen:18,render:function(c,v){c.textContent=v||'Pessoa '+(pi+1);}});}
+function editCargo(pi){makeEditable('cargocell_'+pi,'cargos',pi,{maxLen:24,placeholder:'Ex: Garçom',render:function(c,v){c.className=v?'cargo-cell has-cargo':'cargo-cell';c.textContent=v||'+ cargo';c.title=v||'';}});}
+function editPix(pi){makeEditable('pixcell_'+pi,'pixes',pi,{maxLen:60,placeholder:'CPF, e-mail ou tel.',render:function(c,v){c.className=v?'pix-cell has-pix':'pix-cell';c.textContent=v||'+ pix';c.title=v||'';}});}
+function editValor(pi){makeEditable('valorcell_'+pi,'valoresDia',pi,{type:'number',maxLen:6,inputClass:'valor-input',editClass:'editing-valor',render:function(c,v){var def=parseInt(document.getElementById('valorDia').value)||130;var val=v?parseInt(v):def;c.className=v?'valor-cell':'valor-cell default-valor';c.textContent='R$ '+val;},afterSave:updateSums});}
+function editObs(pi){makeEditable('obscell_'+pi,'obs',pi,{maxLen:80,placeholder:'Anotação…',editClass:'editing-obs',render:function(c,v){c.className=v?'obs-cell has-obs':'obs-cell';c.textContent=v||'+ obs';c.title=v||'';}});}
 
 // ── BUILD TABLE ───────────────────────────────────────────
 function buildTable(){
+  var s=S();
   var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
   var nd=parseInt(document.getElementById('numDias').value)||26;
   var def=parseInt(document.getElementById('valorDia').value)||130;
 
-  while(nomes.length<NUM_MAX)nomes.push('Pessoa '+(nomes.length+1));
-  ['pixes','obs','valoresDia','cargos'].forEach(arr=>{while(window[arr].length<NUM_MAX)window[arr].push('');});
+  while(s.nomes.length<NUM_MAX)s.nomes.push('Pessoa '+(s.nomes.length+1));
+  ['pixes','obs','valoresDia','cargos'].forEach(function(k){while(s[k].length<NUM_MAX)s[k].push('');});
 
-  var diasSemana=['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
+  var dias=['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
   var hRow='<tr>'
     +'<th class="th-left col-name">Pessoa</th>'
     +'<th class="th-left col-cargo" style="color:#b06000">Cargo</th>'
@@ -602,28 +556,27 @@ function buildTable(){
     +'<th style="color:#e07b00" class="col-valor">Valor/dia</th>';
   for(var d=1;d<=nd;d++){
     var ws=d===8||d===15||d===22?'week-sep':'';
-    hRow+='<th class="col-day '+ws+'" data-day="'+d+'" title="Dia '+d+'">'+diasSemana[(d-1)%7]+'</th>';
+    hRow+='<th class="col-day '+ws+'" data-day="'+d+'" title="Dia '+d+'">'+dias[(d-1)%7]+'</th>';
   }
-  hRow+='<th class="col-tot">Dias</th><th class="col-tot">Total</th>'
-    +'<th class="th-left col-obs" style="color:#6c63cc">Observações</th></tr>';
+  hRow+='<th class="col-tot">Dias</th><th class="col-tot">Total</th><th class="th-left col-obs" style="color:#6c63cc">Obs</th></tr>';
   document.getElementById('thead').innerHTML=hRow;
 
   var bHtml='';
   for(var pi=0;pi<np;pi++){
-    var vd=valoresDia[pi]?parseInt(valoresDia[pi]):def;
-    var isCustom=!!valoresDia[pi];
+    var vd=s.valoresDia[pi]?parseInt(s.valoresDia[pi]):def;
+    var isC=!!s.valoresDia[pi];
     bHtml+='<tr>'
-      +'<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+nomes[pi]+'</td>'
-      +'<td class="'+(cargos[pi]?'cargo-cell has-cargo':'cargo-cell')+' col-cargo" id="cargocell_'+pi+'" onclick="editCargo('+pi+')" title="'+(cargos[pi]||'Adicionar cargo')+'">'+(cargos[pi]||'+ cargo')+'</td>'
-      +'<td class="'+(pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')" title="'+(pixes[pi]||'Adicionar pix')+'">'+(pixes[pi]||'+ pix')+'</td>'
-      +'<td class="valor-cell'+(isCustom?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')" title="Clique para editar">R$ '+vd+'</td>';
+      +'<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+s.nomes[pi]+'</td>'
+      +'<td class="'+(s.cargos[pi]?'cargo-cell has-cargo':'cargo-cell')+' col-cargo" id="cargocell_'+pi+'" onclick="editCargo('+pi+')">'+(s.cargos[pi]||'+ cargo')+'</td>'
+      +'<td class="'+(s.pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')">'+(s.pixes[pi]||'+ pix')+'</td>'
+      +'<td class="valor-cell'+(isC?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')">R$ '+vd+'</td>';
     for(var d2=1;d2<=nd;d2++){
       var ws2=d2===8||d2===15||d2===22?'week-sep-td':'';
-      bHtml+='<td class="'+ws2+'" data-day="'+d2+'"><input type="checkbox" class="day-check" data-p="'+pi+'" data-d="'+d2+'" '+(checks[getKey(pi,d2)]?'checked':'')+'></td>';
+      bHtml+='<td class="'+ws2+'" data-day="'+d2+'"><input type="checkbox" class="day-check" data-p="'+pi+'" data-d="'+d2+'" '+(s.checks[getKey(pi,d2)]?'checked':'')+'></td>';
     }
     bHtml+='<td class="dias-cell" id="dias_'+pi+'">0</td>'
       +'<td class="total-cell" id="tot_'+pi+'">R$ 0</td>'
-      +'<td class="'+(obs[pi]?'obs-cell has-obs':'obs-cell')+' col-obs" id="obscell_'+pi+'" onclick="editObs('+pi+')" title="'+(obs[pi]||'Adicionar observação')+'">'+(obs[pi]||'+ obs')+'</td>'
+      +'<td class="'+(s.obs[pi]?'obs-cell has-obs':'obs-cell')+' col-obs" id="obscell_'+pi+'" onclick="editObs('+pi+')">'+(s.obs[pi]||'+ obs')+'</td>'
       +'</tr>';
   }
   document.getElementById('tbody').innerHTML=bHtml;
@@ -636,64 +589,58 @@ function buildTable(){
   fRow+='<td id="foot_dias">0</td><td id="foot_total" class="grand">R$ 0</td><td></td></tr>';
   document.getElementById('tfoot').innerHTML=fRow;
 
-  document.querySelectorAll('.day-check').forEach(cb=>{
+  document.querySelectorAll('.day-check').forEach(function(cb){
     cb.addEventListener('change',function(){
-      checks[getKey(parseInt(this.dataset.p),parseInt(this.dataset.d))]=this.checked;
+      S().checks[getKey(parseInt(this.dataset.p),parseInt(this.dataset.d))]=this.checked;
       updateSums();scheduleSave();
     });
   });
-
   setPeriod(currentPeriod,document.querySelector('[data-period="'+currentPeriod+'"]'));
 }
 
 // ── UPDATE SUMS ───────────────────────────────────────────
 function updateSums(){
+  var s=S();
   var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
   var nd=parseInt(document.getElementById('numDias').value)||26;
   var r=periodRange();
-  var grandDias=0,grandTotal=0,maxSal=0,minSal=Infinity,maxIdx=0,minIdx=0;
-  var colDias=new Array(nd+1).fill(0);
-  var semDias=[0,0,0,0,0],semTot=[0,0,0,0,0];
-
+  var gD=0,gT=0,maxS=0,minS=Infinity,maxI=0,minI=0;
+  var colD=new Array(nd+1).fill(0);
+  var sD=[0,0,0,0,0],sT=[0,0,0,0,0];
   for(var pi=0;pi<np;pi++){
-    var valor=getValorPessoa(pi);
-    var pDias=0;
+    var val=getValorPessoa(pi),pD=0;
     for(var d=1;d<=nd;d++){
-      if(checks[getKey(pi,d)]){
-        colDias[d]++;semDias[semana(d)]++;semTot[semana(d)]+=valor;
-        if(d>=r.s&&d<=r.e)pDias++;
-      }
+      if(s.checks[getKey(pi,d)]){colD[d]++;sD[semana(d)]++;sT[semana(d)]+=val;if(d>=r.s&&d<=r.e)pD++;}
     }
-    var pTot=pDias*valor;
-    document.getElementById('dias_'+pi).textContent=pDias;
-    document.getElementById('tot_'+pi).textContent='R$ '+pTot.toLocaleString('pt-BR');
-    grandDias+=pDias;grandTotal+=pTot;
-    if(pTot>maxSal){maxSal=pTot;maxIdx=pi;}
-    if(pTot<minSal){minSal=pTot;minIdx=pi;}
+    var pT=pD*val;
+    document.getElementById('dias_'+pi).textContent=pD;
+    document.getElementById('tot_'+pi).textContent='R$ '+pT.toLocaleString('pt-BR');
+    gD+=pD;gT+=pT;
+    if(pT>maxS){maxS=pT;maxI=pi;}
+    if(pT<minS){minS=pT;minI=pi;}
   }
-  for(var d2=1;d2<=nd;d2++){var el=document.getElementById('col_'+d2);if(el)el.textContent=colDias[d2];}
-  document.getElementById('foot_dias').textContent=grandDias;
-  document.getElementById('foot_total').textContent='R$ '+grandTotal.toLocaleString('pt-BR');
-  document.getElementById('sumTotal').textContent='R$ '+grandTotal.toLocaleString('pt-BR');
-  document.getElementById('sumDias').textContent=grandDias;
-  document.getElementById('subDiasDetail').textContent=np+' pessoas no período';
-  document.getElementById('maxSal').textContent='R$ '+maxSal.toLocaleString('pt-BR');
-  document.getElementById('maxName').textContent=nomes[maxIdx]||'—';
-  document.getElementById('mediaSal').textContent='R$ '+(np>0?Math.round(grandTotal/np):0).toLocaleString('pt-BR');
-  document.getElementById('minSal').textContent='R$ '+(minSal===Infinity?0:minSal).toLocaleString('pt-BR');
-  document.getElementById('minName').textContent=nomes[minIdx]||'—';
+  for(var d2=1;d2<=nd;d2++){var el=document.getElementById('col_'+d2);if(el)el.textContent=colD[d2];}
+  document.getElementById('foot_dias').textContent=gD;
+  document.getElementById('foot_total').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumTotal').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumDias').textContent=gD;
+  document.getElementById('subDiasDetail').textContent=np+' pessoas';
+  document.getElementById('maxSal').textContent='R$ '+maxS.toLocaleString('pt-BR');
+  document.getElementById('maxName').textContent=s.nomes[maxI]||'—';
+  document.getElementById('mediaSal').textContent='R$ '+(np>0?Math.round(gT/np):0).toLocaleString('pt-BR');
+  document.getElementById('minSal').textContent='R$ '+(minS===Infinity?0:minS).toLocaleString('pt-BR');
+  document.getElementById('minName').textContent=s.nomes[minI]||'—';
   document.getElementById('subPeriod').textContent=currentPeriod==='all'?'período completo':'semana '+currentPeriod;
-
   var nd2=parseInt(document.getElementById('numDias').value)||26;
-  var labels=['Semana 1 (dias 1–7)','Semana 2 (dias 8–14)','Semana 3 (dias 15–21)','Semana 4 (dias 22–'+nd2+')'];
-  var maxPSTot=Math.max(...semTot.slice(1));
+  var lbs=['Semana 1 (1–7)','Semana 2 (8–14)','Semana 3 (15–21)','Semana 4 (22–'+nd2+')'];
+  var maxP=Math.max.apply(null,sT.slice(1));
   var html='',tDA=0,tTA=0;
-  for(var s=1;s<=4;s++){
-    tDA+=semDias[s];tTA+=semTot[s];
-    var pct=maxPSTot>0?Math.round(semTot[s]/maxPSTot*100):0;
-    html+='<tr><td>'+labels[s-1]+'</td><td class="dias-col">'+semDias[s]+'</td>'
-      +'<td class="tot-col">R$ '+semTot[s].toLocaleString('pt-BR')+'</td>'
-      +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(semTot[s]/np):0).toLocaleString('pt-BR')+'</td>'
+  for(var w=1;w<=4;w++){
+    tDA+=sD[w];tTA+=sT[w];
+    var pct=maxP>0?Math.round(sT[w]/maxP*100):0;
+    html+='<tr><td>'+lbs[w-1]+'</td><td class="dias-col">'+sD[w]+'</td>'
+      +'<td class="tot-col">R$ '+sT[w].toLocaleString('pt-BR')+'</td>'
+      +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(sT[w]/np):0).toLocaleString('pt-BR')+'</td>'
       +'<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
   }
   html+='<tr style="font-weight:700;background:#fafaf7"><td>Total geral</td><td class="dias-col">'+tDA+'</td>'
@@ -704,73 +651,70 @@ function updateSums(){
 
 function setPeriod(p,btn){
   currentPeriod=p;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
   var nd=parseInt(document.getElementById('numDias').value)||26;
   for(var d=1;d<=nd;d++){
     var show=inPeriod(d);
-    document.querySelectorAll('[data-day="'+d+'"]').forEach(el=>el.style.display=show?'':'none');
+    document.querySelectorAll('[data-day="'+d+'"]').forEach(function(el){el.style.display=show?'':'none';});
   }
   updateSums();
 }
 
-function resetChecks(){checks={};buildTable();}
+function resetChecks(){S().checks={};buildTable();}
 
 async function resetAll(){
-  if(!confirm('Apagar todos os dados? Isto também limpará a planilha.'))return;
-  initDefaults();
+  if(!confirm('Apagar todos os dados do setor '+CONFIG.SETORES[currentSetor].label+'?'))return;
+  initDefaults(currentSetor);
   document.getElementById('numPessoas').value=15;
   document.getElementById('valorDia').value=130;
   document.getElementById('numDias').value=26;
-  buildTable();
-  await saveToSheets();
+  buildTable();await saveToSheets();
 }
 
-document.getElementById('numPessoas').addEventListener('change',()=>{buildTable();scheduleSave();});
-document.getElementById('numDias').addEventListener('change',()=>{buildTable();scheduleSave();});
-document.getElementById('valorDia').addEventListener('change',()=>{updateSums();scheduleSave();});
+document.getElementById('numPessoas').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('numDias').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('valorDia').addEventListener('change',function(){updateSums();scheduleSave();});
 
-// ── EXPORT PDF (igual ao original) ───────────────────────
+// ── EXPORT PDF ────────────────────────────────────────────
 function exportPDF(){
+  var s=S();
   var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
   var nd=parseInt(document.getElementById('numDias').value)||26;
   var hoje=new Date().toLocaleDateString('pt-BR');
+  var setor=CONFIG.SETORES[currentSetor].label;
   var hd='';for(var d=1;d<=nd;d++)hd+='<th>'+d+'</th>';
-  var rows='',colT=new Array(nd+1).fill(0),sD=[0,0,0,0,0],sT=[0,0,0,0,0];
+  var rows='',cT=new Array(nd+1).fill(0),sD=[0,0,0,0,0],sT=[0,0,0,0,0];
   for(var pi=0;pi<np;pi++){
     var v=getValorPessoa(pi),tD=0,tV=0,cells='';
     for(var d2=1;d2<=nd;d2++){
-      var chk=!!checks[getKey(pi,d2)];
-      if(chk){tD++;tV+=v;colT[d2]++;sD[semana(d2)]++;sT[semana(d2)]+=v;}
-      cells+='<td style="'+(chk?'background:#e6f7f1;color:#0F6E56;font-weight:700':'')+'">'+( chk?'✓':'' )+'</td>';
+      var chk=!!s.checks[getKey(pi,d2)];
+      if(chk){tD++;tV+=v;cT[d2]++;sD[semana(d2)]++;sT[semana(d2)]+=v;}
+      cells+='<td style="'+(chk?'background:#e6f7f1;color:#0F6E56;font-weight:700':'')+'">'+( chk?'✓':'')+'</td>';
     }
-    rows+='<tr><td style="text-align:left;padding-left:6px;font-weight:600">'+nomes[pi]+'</td>'
-      +'<td style="text-align:left;padding-left:4px;color:#8a4f00;font-size:8px">'+(cargos[pi]||'—')+'</td>'
-      +'<td style="text-align:left;padding-left:4px;color:#0F6E56;font-size:7.5px">'+(pixes[pi]||'—')+'</td>'
+    rows+='<tr><td style="text-align:left;padding-left:6px;font-weight:600">'+s.nomes[pi]+'</td>'
+      +'<td style="color:#8a4f00;font-size:8px">'+(s.cargos[pi]||'—')+'</td>'
+      +'<td style="color:#0F6E56;font-size:7.5px">'+(s.pixes[pi]||'—')+'</td>'
       +'<td style="color:#e07b00;font-weight:600;text-align:right">R$ '+v+'</td>'
       +cells
       +'<td style="color:#555">'+tD+'</td>'
       +'<td style="font-weight:700;color:#0F6E56">R$ '+tV.toLocaleString('pt-BR')+'</td>'
-      +'<td style="text-align:left;padding-left:4px;color:#4a4580;font-size:8px;font-style:italic">'+(obs[pi]||'')+'</td></tr>';
+      +'<td style="color:#4a4580;font-size:8px;font-style:italic">'+(s.obs[pi]||'')+'</td></tr>';
   }
-  var fC='';for(var d3=1;d3<=nd;d3++)fC+='<td>'+colT[d3]+'</td>';
+  var fC='';for(var d3=1;d3<=nd;d3++)fC+='<td>'+cT[d3]+'</td>';
   var th='background:#0F6E56;color:#fff;padding:4px 3px;text-align:center;font-size:8px;';
   var td='padding:3px 2px;text-align:center;border-bottom:1px solid #eee;font-size:8px;';
-  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Pagamento da Equipe</title>'
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+setor+'</title>'
     +'<style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{'+th+'}td{'+td+'}tr:nth-child(even) td{background:#fafaf7}@media print{.no-print{display:none}}</style></head><body>'
     +'<div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1D9E75">'
-    +'<h1 style="font-size:15px;color:#0F6E56">💰 Pagamento da Equipe</h1>'
+    +'<h1 style="font-size:15px;color:#0F6E56">💰 '+setor+'</h1>'
     +'<div style="font-size:9px;color:#888;text-align:right">Gerado em: '+hoje+'<br>'+np+' pessoas · '+nd+' dias</div></div>'
     +'<table><thead><tr>'
-    +'<th style="'+th+'text-align:left;padding-left:6px">Pessoa</th>'
-    +'<th style="'+th+'text-align:left">Cargo</th>'
-    +'<th style="'+th+'text-align:left">Pix</th>'
-    +'<th style="'+th+'text-align:right">R$/dia</th>'
-    +hd
-    +'<th style="'+th+'">Dias</th><th style="'+th+'">Total</th>'
-    +'<th style="'+th+'text-align:left">Obs</th>'
+    +'<th style="'+th+'text-align:left">Pessoa</th><th style="'+th+'text-align:left">Cargo</th>'
+    +'<th style="'+th+'text-align:left">Pix</th><th style="'+th+'text-align:right">R$/dia</th>'
+    +hd+'<th>Dias</th><th>Total</th><th style="'+th+'text-align:left">Obs</th>'
     +'</tr></thead><tbody>'+rows+'</tbody>'
-    +'<tfoot><tr style="background:#f5f5f0"><td style="text-align:left;font-weight:700;'+td+'">Total/dia</td>'
+    +'<tfoot><tr style="background:#f5f5f0"><td style="font-weight:700;'+td+'">Total/dia</td>'
     +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'+fC
     +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td></tr></tfoot></table>'
     +'<div class="no-print" style="margin-top:16px;text-align:center">'
