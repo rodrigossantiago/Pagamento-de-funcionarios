@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -5,27 +6,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pagamento da Equipe</title>
 <script>
-const CONFIG = {
-  CLIENT_ID: '318681534200-c679c4dm1n0ahrja9sb43mjnuqgse0u4.apps.googleusercontent.com',
-  SPREADSHEET_ID: '16DxjaQXOYY3_gecR3tLMnsZi-oiiQ8ffA8nU0QFstwM',
-  SETORES: [
-    {id:'bar',       label:'🍺 Bar',       sheet:'Bar'},
-    {id:'narguile',  label:'💨 Narguile',  sheet:'Narguile'},
-    {id:'limpeza',   label:'🧹 Limpeza',   sheet:'Limpeza'},
-    {id:'seguranca', label:'🔒 Segurança', sheet:'Seguranca'},
-  ]
-};
+  const CONFIG = {
+    CLIENT_ID: '318681534200-c679c4dm1n0ahrja9sb43mjnuqgse0u4.apps.googleusercontent.com',
+    SPREADSHEET_ID: '16DxjaQXOYY3_gecR3tLMnsZi-oiiQ8ffA8nU0QFstwM',
+    // Nome de cada aba na planilha — deve ser IGUAL ao nome da aba no Google Sheets
+    SETORES: [
+      {id:'bar',       label:'🍺 Bar',       sheet:'Bar'},
+      {id:'narguile',  label:'💨 Narguile',  sheet:'Narguile'},
+      {id:'limpeza',   label:'🧹 Limpeza',   sheet:'Limpeza'},
+      {id:'seguranca', label:'🔒 Segurança', sheet:'Seguranca'},
+    ]
+  };
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a18;min-height:100vh;padding:1.5rem 1rem}
 .container{max-width:1400px;margin:0 auto}
+
+/* LOGIN */
 #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px}
-#loginScreen h1{font-size:22px}
+#loginScreen h1{font-size:22px;color:#1a1a18}
 #loginScreen p{color:#888;font-size:14px;max-width:360px;text-align:center}
-#loginError{color:#c0392b;font-size:12px;display:none}
-.btn-google{display:flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;border:1px solid #d3d1c7;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.btn-google{display:flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;border:1px solid #d3d1c7;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);transition:box-shadow .15s}
+.btn-google:hover{box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .btn-google svg{width:20px;height:20px}
+#loginError{color:#c0392b;font-size:12px;display:none}
+
+/* TOPBAR */
 #topbar{display:none;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap}
 #topbar h1{font-size:17px;font-weight:600;flex:1}
 .user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:#5f5e5a}
@@ -33,10 +40,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a1
 .save-badge{font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;background:#e6f7f1;color:#0F6E56;border:1px solid #b2e4d4;transition:all .3s}
 .save-badge.saving{background:#fff8e1;color:#b07d00;border-color:#f5d87a}
 .save-badge.error{background:#fff0f0;color:#c0392b;border-color:#f5c0c0}
+
+/* SETOR TABS */
 .setor-tabs{display:flex;gap:6px;margin-bottom:1.2rem;flex-wrap:wrap}
-.setor-tab{padding:8px 20px;border-radius:8px;border:2px solid #e8e8e2;background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#5f5e5a;transition:all .15s}
+.setor-tab{padding:8px 20px;border-radius:8px;border:2px solid #e8e8e2;background:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:#5f5e5a}
 .setor-tab:hover{border-color:#1D9E75;color:#1D9E75}
 .setor-tab.active{background:#1D9E75;color:#fff;border-color:#1D9E75}
+
+/* CONFIG BAR */
 .config-bar{background:#fff;border:1px solid #e8e8e2;border-radius:10px;padding:12px 16px;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
 .config-group{display:flex;align-items:center;gap:8px}
 .config-group label{font-size:12px;color:#888780}
@@ -48,47 +59,51 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a1
 .btn-green:hover{background:#178f68}
 .btn-danger{border-color:#f5c0c0;color:#c0392b}
 .btn-danger:hover{background:#fff0f0}
+
+/* PERIOD */
 .period-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
 .period-bar span{font-size:12px;color:#888780;margin-right:4px}
 .period-btn{font-size:12px;padding:4px 12px;cursor:pointer;border-radius:20px;border:1px solid #d3d1c7;background:#fff;color:#5f5e5a;transition:all .15s}
 .period-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75}
+
+/* SUMMARY */
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.2rem}
 .metric{background:#fff;border-radius:8px;border:1px solid #e8e8e2;padding:11px 14px}
 .metric-label{font-size:10px;color:#888780;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
 .metric-value{font-size:19px;font-weight:600;color:#1a1a18}
 .metric-value.green{color:#0F6E56}
 .metric-sub{font-size:10px;color:#b4b2a9;margin-top:2px}
+
+/* TABLE */
 .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid #e8e8e2;background:#fff}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{font-size:10px;font-weight:500;color:#888780;text-align:center;padding:7px 2px;border-bottom:1px solid #e8e8e2;background:#fafaf7;position:sticky;top:0;white-space:nowrap}
 thead th.th-left{text-align:left;padding-left:10px}
 thead th.week-sep{border-left:2px solid #e8e8e2}
-.col-name{width:90px}.col-desc{width:75px}.col-pix{width:100px}.col-valor{width:70px}.col-obs{width:130px}.col-day{width:26px}.col-tot{width:65px}
+.col-name{width:90px}.col-cargo{width:90px}.col-pix{width:100px}.col-valor{width:70px}.col-obs{width:130px}.col-day{width:26px}.col-tot{width:50px}
 tbody td{text-align:center;padding:4px 2px;border-bottom:1px solid #f1f0ea;vertical-align:middle}
 tbody td.td-left{text-align:left;padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 tbody tr:hover td{background:#f9f9f5}
 .editable-input{font-size:11px;font-family:inherit;border:none;border-bottom:1.5px solid #1D9E75;outline:none;background:transparent;color:#1a1a18;width:78px}
 .valor-input{border-bottom-color:#e07b00;text-align:right;width:58px}
-.desc-input{border-bottom-color:#c0392b;text-align:right;width:58px}
 td.editing{background:#f0faf6!important}
 td.editing-valor{background:#fff8ee!important}
-td.editing-desc{background:#fff0f0!important}
 td.editing-obs{background:#f5f3ff!important}
-.pix-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pix-cell,.obs-cell,.cargo-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pix-cell.has-pix{color:#0F6E56;font-weight:500}
-.desc-cell{cursor:pointer;color:#c8c5bc;font-size:11px}
-.desc-cell.has-desc{color:#c0392b;font-weight:600}
-.obs-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cargo-cell.has-cargo{color:#8a4f00;font-weight:500}
 .obs-cell.has-obs{color:#4a4580}
 .valor-cell{cursor:pointer;font-size:11px;color:#e07b00;font-weight:600}
 .valor-cell.default-valor{color:#b4b2a9;font-weight:400}
 .day-check{width:14px;height:14px;cursor:pointer;accent-color:#1D9E75}
 .week-sep-td{border-left:2px solid #e8e8e2!important}
-.total-cell{font-weight:600;color:#0F6E56;font-size:11px}
+.total-cell{font-weight:600;color:#0F6E56}
 .dias-cell{font-weight:500;color:#555}
 tfoot td{font-size:11px;font-weight:500;color:#888780;text-align:center;padding:6px 2px;border-top:2px solid #e8e8e2;background:#fafaf7}
 tfoot td.td-left{text-align:left;padding-left:10px}
 tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
+
+/* SEMANA SUMMARY */
 .period-summary{background:#fff;border:1px solid #e8e8e2;border-radius:10px;margin-top:1rem;overflow:hidden}
 .period-summary h2{font-size:13px;font-weight:600;padding:10px 14px;border-bottom:1px solid #e8e8e2;background:#fafaf7}
 .ps-table{width:100%;border-collapse:collapse;font-size:12px}
@@ -109,7 +124,8 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
 <body>
 <div class="container">
 
-<div id="loginScreen">
+<!-- LOGIN -->
+<div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px">
   <h1>💰 Pagamento da Equipe</h1>
   <p>Entre com sua conta Google para acessar e sincronizar os dados.</p>
   <button class="btn-google" onclick="signIn()">
@@ -119,6 +135,7 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
   <p id="loginError"></p>
 </div>
 
+<!-- APP -->
 <div id="appScreen" style="display:none">
   <div id="topbar">
     <h1>💰 Pagamento da Equipe</h1>
@@ -130,6 +147,7 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
     </div>
   </div>
 
+  <!-- ABAS DOS SETORES -->
   <div class="setor-tabs" id="setorTabs"></div>
 
   <div class="config-bar">
@@ -175,7 +193,7 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
       <tbody id="ps-body"></tbody>
     </table>
   </div>
-  <p class="note">Clique nas abas para trocar de setor · Dados salvos automaticamente no Google Sheets</p>
+  <p class="note">Clique nas abas para trocar de setor · Dados de cada setor salvos em abas separadas no Google Sheets</p>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -185,555 +203,526 @@ tfoot .grand{color:#0F6E56;font-size:12px;font-weight:700}
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-var NUM_MAX = 20;
-var currentSetor = 0;
-var currentPeriod = 'all';
-var saveTimer = null;
-var accessToken = null;
-var tokenClient = null;
-var isSaving = false;
-var TOKEN_KEY = 'pagamento_gtoken';
-var PROFILE_KEY = 'pagamento_gprofile';
-var SETOR_KEY = 'pagamento_setor';
+// ── ESTADO GLOBAL ─────────────────────────────────────────
+var NUM_MAX=20;
+var currentSetor=0; // índice em CONFIG.SETORES
+var currentPeriod='all';
+var saveTimer=null;
+var accessToken=null;
+var tokenClient=null;
+var isSaving=false;
+var TOKEN_KEY='pagamento_gtoken';
+var PROFILE_KEY='pagamento_gprofile';
+var SETOR_KEY='pagamento_setor';
 
-var estado = CONFIG.SETORES.map(function() {
-  return {nomes:[],pixes:[],obs:[],valoresDia:[],descontos:[],checks:{},
+// estado por setor: array indexado por setor
+var estado=CONFIG.SETORES.map(function(){
+  return {nomes:[],pixes:[],obs:[],valoresDia:[],cargos:[],checks:{},
           numPessoas:15,valorDia:130,numDias:26};
 });
 
 // ── INIT ──────────────────────────────────────────────────
-window.addEventListener('load', function() {
+window.addEventListener('load',function(){
   buildSetorTabs();
-  var iv = setInterval(function() {
-    if (typeof google !== 'undefined' && google.accounts) {
-      clearInterval(iv);
-      if (tryRestoreSession()) scheduleTokenRenewal();
+  var interval=setInterval(function(){
+    if(typeof google!=='undefined'&&google.accounts){
+      clearInterval(interval);
+      if(!tryRestoreSession()){}
+      else scheduleTokenRenewal();
     }
-  }, 100);
+  },100);
 });
 
-function buildSetorTabs() {
-  var tabs = document.getElementById('setorTabs');
-  CONFIG.SETORES.forEach(function(s, i) {
-    var btn = document.createElement('button');
-    btn.className = 'setor-tab' + (i === 0 ? ' active' : '');
-    btn.textContent = s.label;
-    btn.onclick = function() { switchSetor(i); };
+function buildSetorTabs(){
+  var tabs=document.getElementById('setorTabs');
+  CONFIG.SETORES.forEach(function(s,i){
+    var btn=document.createElement('button');
+    btn.className='setor-tab'+(i===0?' active':'');
+    btn.textContent=s.label;
+    btn.onclick=function(){switchSetor(i);};
     tabs.appendChild(btn);
   });
 }
 
-function switchSetor(idx) {
+function switchSetor(idx){
   saveCurrentConfig();
-  currentSetor = idx;
-  localStorage.setItem(SETOR_KEY, idx);
-  document.querySelectorAll('.setor-tab').forEach(function(b, i) {
-    b.classList.toggle('active', i === idx);
+  currentSetor=idx;
+  localStorage.setItem(SETOR_KEY,idx);
+  document.querySelectorAll('.setor-tab').forEach(function(b,i){
+    b.classList.toggle('active',i===idx);
   });
   loadCurrentConfig();
   loadFromSheets(idx);
 }
 
-function saveCurrentConfig() {
-  var s = estado[currentSetor];
-  s.numPessoas = parseInt(document.getElementById('numPessoas').value) || 15;
-  s.valorDia   = parseInt(document.getElementById('valorDia').value)   || 130;
-  s.numDias    = parseInt(document.getElementById('numDias').value)    || 26;
+// salva config dos inputs no estado do setor atual
+function saveCurrentConfig(){
+  var s=estado[currentSetor];
+  s.numPessoas=parseInt(document.getElementById('numPessoas').value)||15;
+  s.valorDia=parseInt(document.getElementById('valorDia').value)||130;
+  s.numDias=parseInt(document.getElementById('numDias').value)||26;
 }
 
-function loadCurrentConfig() {
-  var s = estado[currentSetor];
-  document.getElementById('numPessoas').value = s.numPessoas || 15;
-  document.getElementById('valorDia').value   = s.valorDia   || 130;
-  document.getElementById('numDias').value    = s.numDias    || 26;
-  currentPeriod = 'all';
-  document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
-  var ab = document.querySelector('[data-period="all"]');
-  if (ab) ab.classList.add('active');
+// carrega config do estado do setor atual nos inputs
+function loadCurrentConfig(){
+  var s=estado[currentSetor];
+  document.getElementById('numPessoas').value=s.numPessoas||15;
+  document.getElementById('valorDia').value=s.valorDia||130;
+  document.getElementById('numDias').value=s.numDias||26;
+  currentPeriod='all';
+  document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active');});
+  var allBtn=document.querySelector('[data-period="all"]');
+  if(allBtn)allBtn.classList.add('active');
 }
 
-function initDefaults(idx) {
-  var s = estado[idx];
-  s.nomes=[]; s.pixes=[]; s.obs=[]; s.valoresDia=[]; s.descontos=[]; s.checks={};
-  for (var i = 0; i < NUM_MAX; i++) {
-    s.nomes.push('Pessoa ' + (i+1));
-    s.pixes.push(''); s.obs.push(''); s.valoresDia.push(''); s.descontos.push('');
+function initDefaults(idx){
+  var s=estado[idx];
+  s.nomes=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.cargos=[];s.checks={};
+  for(var i=0;i<NUM_MAX;i++){
+    s.nomes.push('Pessoa '+(i+1));s.pixes.push('');
+    s.obs.push('');s.valoresDia.push('');s.cargos.push('');
   }
 }
 
 // ── AUTH ──────────────────────────────────────────────────
-var SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+var SCOPES='https://www.googleapis.com/auth/spreadsheets';
 
-function signIn() {
-  if (!CONFIG.CLIENT_ID || CONFIG.CLIENT_ID.includes('SEU_')) { showError('Configure o CLIENT_ID.'); return; }
+function signIn(){
+  if(!CONFIG.CLIENT_ID||CONFIG.CLIENT_ID.includes('SEU_')){showError('Configure o CLIENT_ID.');return;}
   initTokenClient(true);
 }
 
-function initTokenClient(prompt) {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.CLIENT_ID, scope: SCOPES,
-    prompt: prompt ? '' : 'none', callback: onTokenReceived
+function initTokenClient(prompt){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CONFIG.CLIENT_ID,scope:SCOPES,
+    prompt:prompt?'':'none',callback:onTokenReceived
   });
   tokenClient.requestAccessToken();
 }
 
-function onTokenReceived(resp) {
-  if (resp.error) {
-    if (resp.error === 'interaction_required' || resp.error === 'login_required') { initTokenClient(true); return; }
-    showError('Erro: ' + resp.error); return;
+function onTokenReceived(resp){
+  if(resp.error){
+    if(resp.error==='interaction_required'||resp.error==='login_required'){initTokenClient(true);return;}
+    showError('Erro: '+resp.error);return;
   }
-  accessToken = resp.access_token;
-  var expiry = Date.now() + (parseInt(resp.expires_in || 3600) - 60) * 1000;
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({token: accessToken, expiry: expiry}));
-  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+accessToken}})
-    .then(function(r) { return r.json(); })
-    .then(function(p) {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  accessToken=resp.access_token;
+  var expiry=Date.now()+(parseInt(resp.expires_in||3600)-60)*1000;
+  localStorage.setItem(TOKEN_KEY,JSON.stringify({token:accessToken,expiry:expiry}));
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}})
+    .then(function(r){return r.json();}).then(function(p){
+      localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
       showApp(p);
-      var si = parseInt(localStorage.getItem(SETOR_KEY) || '0');
-      currentSetor = si;
-      document.querySelectorAll('.setor-tab').forEach(function(b,i){b.classList.toggle('active',i===si);});
+      var saved=parseInt(localStorage.getItem(SETOR_KEY)||'0');
+      currentSetor=saved;
+      document.querySelectorAll('.setor-tab').forEach(function(b,i){b.classList.toggle('active',i===saved);});
       loadCurrentConfig();
       loadFromSheets(currentSetor);
-    }).catch(function() { showApp(null); loadFromSheets(currentSetor); });
+    }).catch(function(){showApp(null);loadFromSheets(currentSetor);});
 }
 
-function showApp(profile) {
-  if (profile) {
-    document.getElementById('userName').textContent = profile.name || profile.email || '';
-    document.getElementById('userAvatar').src = profile.picture || '';
+function showApp(profile){
+  if(profile){
+    document.getElementById('userName').textContent=profile.name||profile.email||'';
+    document.getElementById('userAvatar').src=profile.picture||'';
   }
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
-  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  document.getElementById('topbar').style.display='flex';
 }
 
-function signOut() {
-  if (accessToken) google.accounts.oauth2.revoke(accessToken, function(){});
-  accessToken = null;
-  localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY);
-  document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
+function signOut(){
+  if(accessToken)google.accounts.oauth2.revoke(accessToken,function(){});
+  accessToken=null;
+  localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(PROFILE_KEY);
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
 }
 
-function tryRestoreSession() {
-  try {
-    var saved = localStorage.getItem(TOKEN_KEY);
-    if (!saved) return false;
-    var obj = JSON.parse(saved);
-    if (!obj.token || Date.now() > obj.expiry) return false;
-    accessToken = obj.token;
-    var profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+function tryRestoreSession(){
+  try{
+    var saved=localStorage.getItem(TOKEN_KEY);
+    if(!saved)return false;
+    var obj=JSON.parse(saved);
+    if(!obj.token||Date.now()>obj.expiry)return false;
+    accessToken=obj.token;
+    var profile=JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}');
     showApp(profile);
-    var si = parseInt(localStorage.getItem(SETOR_KEY) || '0');
-    currentSetor = si;
+    var si=parseInt(localStorage.getItem(SETOR_KEY)||'0');
+    currentSetor=si;
     document.querySelectorAll('.setor-tab').forEach(function(b,i){b.classList.toggle('active',i===si);});
     loadCurrentConfig();
     loadFromSheets(currentSetor);
     return true;
-  } catch(e) { return false; }
+  }catch(e){return false;}
 }
 
-function scheduleTokenRenewal() {
-  try {
-    var obj = JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}');
-    var ms = obj.expiry - Date.now();
-    if (ms > 0) setTimeout(function(){ if(accessToken) initTokenClient(false); }, Math.max(ms-120000,0));
-  } catch(e) {}
+function scheduleTokenRenewal(){
+  try{
+    var obj=JSON.parse(localStorage.getItem(TOKEN_KEY)||'{}');
+    var ms=obj.expiry-Date.now();
+    if(ms>0)setTimeout(function(){if(accessToken)initTokenClient(false);},Math.max(ms-120000,0));
+  }catch(e){}
 }
 
-function showError(msg) {
-  var el = document.getElementById('loginError');
-  el.textContent = msg; el.style.display = 'block';
+function showError(msg){
+  var el=document.getElementById('loginError');
+  el.textContent=msg;el.style.display='block';
 }
 
 // ── SHEETS API ────────────────────────────────────────────
-function R(idx, a1) { return CONFIG.SETORES[idx].sheet + '!' + a1; }
+function R(setor,a1){return CONFIG.SETORES[setor].sheet+'!'+a1;}
 
-function sheetsGet(range) {
+function sheetsGet(range){
   return fetch(
-    'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SPREADSHEET_ID + '/values/' + range,
+    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID+'/values/'+range,
     {headers:{Authorization:'Bearer '+accessToken}}
-  ).then(function(r) {
-    if (!r.ok) { var e = new Error('HTTP '+r.status); e.status=r.status; throw e; }
+  ).then(function(r){
+    if(!r.ok){var e=new Error('HTTP '+r.status);e.status=r.status;throw e;}
     return r.json();
   });
 }
 
-function sheetsBatchUpdate(data) {
+function sheetsBatchUpdate(data){
   return fetch(
-    'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SPREADSHEET_ID + '/values:batchUpdate',
-    {method:'POST', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-     body: JSON.stringify({valueInputOption:'RAW', data:data})}
-  ).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(b) {
-        console.error('Sheets erro', r.status, JSON.stringify(b));
-        var e = new Error(b.error && b.error.message || 'HTTP '+r.status);
-        e.status = r.status; throw e;
+    'https://sheets.googleapis.com/v4/spreadsheets/'+CONFIG.SPREADSHEET_ID+'/values:batchUpdate',
+    {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+     body:JSON.stringify({valueInputOption:'RAW',data:data})}
+  ).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(b){
+        console.error('Sheets erro',r.status,JSON.stringify(b));
+        var e=new Error(b.error&&b.error.message||'HTTP '+r.status);
+        e.status=r.status;throw e;
       });
     }
     return r.json();
   });
 }
 
-async function loadFromSheets(idx) {
-  if (!accessToken) return;
-  showLoading('Carregando ' + CONFIG.SETORES[idx].label + '…');
+async function loadFromSheets(idx){
+  if(!accessToken)return;
+  showLoading('Carregando '+CONFIG.SETORES[idx].label+'…');
   initDefaults(idx);
-  try {
-    var cfg = await sheetsGet(R(idx, 'A1:C1'));
-    var cfgRow = (cfg.values && cfg.values[0]) || [];
-    var s = estado[idx];
-    if (cfgRow[0]) s.numPessoas = parseInt(cfgRow[0]);
-    if (cfgRow[1]) s.valorDia   = parseInt(cfgRow[1]);
-    if (cfgRow[2]) s.numDias    = parseInt(cfgRow[2]);
+  try{
+    var cfg=await sheetsGet(R(idx,'A1:C1'));
+    var cfgRow=(cfg.values&&cfg.values[0])||[];
+    var s=estado[idx];
+    if(cfgRow[0])s.numPessoas=parseInt(cfgRow[0]);
+    if(cfgRow[1])s.valorDia=parseInt(cfgRow[1]);
+    if(cfgRow[2])s.numDias=parseInt(cfgRow[2]);
 
-    var ppl = await sheetsGet(R(idx, 'A3:F'));
-    var rows = ppl.values || [];
-    rows.forEach(function(row, i) {
-      if (i >= NUM_MAX) return;
-      s.nomes[i]     = row[0] || s.nomes[i];
-      s.descontos[i] = row[1] || '';
-      s.pixes[i]     = row[2] || '';
-      s.valoresDia[i]= row[3] || '';
-      s.obs[i]       = row[4] || '';
-      try { if (row[5]) Object.assign(s.checks, JSON.parse(row[5])); } catch(e) {}
+    var ppl=await sheetsGet(R(idx,'A3:F'));
+    var rows=(ppl.values)||[];
+    rows.forEach(function(row,i){
+      if(i>=NUM_MAX)return;
+      s.nomes[i]=row[0]||s.nomes[i];
+      s.cargos[i]=row[1]||'';
+      s.pixes[i]=row[2]||'';
+      s.valoresDia[i]=row[3]||'';
+      s.obs[i]=row[4]||'';
+      try{if(row[5])Object.assign(s.checks,JSON.parse(row[5]));}catch(e){}
     });
-    if (idx === currentSetor) { loadCurrentConfig(); buildTable(); }
+    if(idx===currentSetor){loadCurrentConfig();buildTable();}
     setBadge('saved');
-  } catch(e) {
-    console.error('Erro ao carregar', CONFIG.SETORES[idx].label, e);
-    if (idx === currentSetor) buildTable();
+  }catch(e){
+    console.error('Erro ao carregar setor',CONFIG.SETORES[idx].label,e);
+    if(idx===currentSetor)buildTable();
     setBadge('error');
-    showToast('Erro ao carregar ' + CONFIG.SETORES[idx].label + '. Verifique o nome da aba na planilha.');
-  } finally { hideLoading(); }
+    showToast('Erro ao carregar '+CONFIG.SETORES[idx].label+'. Verifique o nome da aba na planilha.');
+  }finally{hideLoading();}
 }
 
-async function saveToSheets() {
-  if (!accessToken || isSaving) return;
-  isSaving = true; setBadge('saving');
-  var idx = currentSetor;
+async function saveToSheets(){
+  if(!accessToken||isSaving)return;
+  isSaving=true;setBadge('saving');
+  var idx=currentSetor;
   saveCurrentConfig();
-  var s = estado[idx];
-  var np = Math.min(s.numPessoas || 15, NUM_MAX);
-  try {
-    var rows = [];
-    for (var i = 0; i < np; i++) {
-      var pc = {};
-      Object.keys(s.checks).forEach(function(k){ if(k.startsWith(i+'_')) pc[k]=s.checks[k]; });
-      rows.push([s.nomes[i]||'', s.descontos[i]||'', s.pixes[i]||'',
-                 s.valoresDia[i]||'', s.obs[i]||'', JSON.stringify(pc)]);
+  var s=estado[idx];
+  var np=Math.min(s.numPessoas||15,NUM_MAX);
+  try{
+    var rows=[];
+    for(var i=0;i<np;i++){
+      var pc={};
+      Object.keys(s.checks).forEach(function(k){if(k.startsWith(i+'_'))pc[k]=s.checks[k];});
+      rows.push([s.nomes[i]||'',s.cargos[i]||'',s.pixes[i]||'',
+                 s.valoresDia[i]||'',s.obs[i]||'',JSON.stringify(pc)]);
     }
     await sheetsBatchUpdate([
-      {range: R(idx,'A1:C1'),        values: [[np, s.valorDia, s.numDias]]},
-      {range: R(idx,'A2:F2'),        values: [['Nome','Desconto (R$)','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
-      {range: R(idx,'A3:F'+(2+np)), values: rows}
+      {range:R(idx,'A1:C1'),       values:[[np,s.valorDia,s.numDias]]},
+      {range:R(idx,'A2:F2'),       values:[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
+      {range:R(idx,'A3:F'+(2+np)),values:rows}
     ]);
     setBadge('saved');
-  } catch(e) {
+  }catch(e){
     setBadge('error');
-    if (e.status === 401) {
-      accessToken = null; localStorage.removeItem(TOKEN_KEY);
+    if(e.status===401){
+      accessToken=null;localStorage.removeItem(TOKEN_KEY);
       showToast('Sessão expirada, reconectando…');
-      setTimeout(function(){ initTokenClient(false); }, 500);
-    } else if (e.status === 403) {
+      setTimeout(function(){initTokenClient(false);},500);
+    } else if(e.status===403){
       showToast('Sem permissão na planilha.');
-    } else if (e.status === 404 || String(e.message).includes('parse range')) {
-      showToast('Aba "' + CONFIG.SETORES[idx].sheet + '" não encontrada. Crie a aba com esse nome exato.');
+    } else if(e.status===404||String(e.message).includes('parse range')){
+      showToast('Aba "'+CONFIG.SETORES[idx].sheet+'" não encontrada na planilha. Crie a aba com esse nome.');
     } else {
-      showToast('Erro ao salvar (' + (e.status || e.message || '?') + ')');
+      showToast('Erro ao salvar ('+( e.status||e.message||'?')+')');
     }
-  } finally { isSaving = false; }
+  }finally{isSaving=false;}
 }
 
-function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToSheets, 800); }
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveToSheets,800);}
 
-function setBadge(st) {
-  var b = document.getElementById('saveBadge'); if (!b) return;
-  if (st==='saving') { b.textContent='⏳ Salvando…'; b.className='save-badge saving'; }
-  else if (st==='saved') { b.textContent='✓ Salvo'; b.className='save-badge'; }
-  else if (st==='loading') { b.textContent='⬇ Carregando…'; b.className='save-badge saving'; }
-  else { b.textContent='⚠ Erro'; b.className='save-badge error'; }
+function setBadge(st){
+  var b=document.getElementById('saveBadge');if(!b)return;
+  if(st==='saving'){b.textContent='⏳ Salvando…';b.className='save-badge saving';}
+  else if(st==='saved'){b.textContent='✓ Salvo';b.className='save-badge';}
+  else if(st==='loading'){b.textContent='⬇ Carregando…';b.className='save-badge saving';}
+  else{b.textContent='⚠ Erro';b.className='save-badge error';}
 }
 
-function showLoading(msg) { document.getElementById('loadingMsg').textContent=msg||'Carregando…'; document.getElementById('loadingOverlay').style.display='flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
-function showToast(msg) { var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},4000); }
+function showLoading(msg){
+  document.getElementById('loadingMsg').textContent=msg||'Carregando…';
+  document.getElementById('loadingOverlay').style.display='flex';
+}
+function hideLoading(){document.getElementById('loadingOverlay').style.display='none';}
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},4000);
+}
 
 // ── HELPERS ───────────────────────────────────────────────
-function S() { return estado[currentSetor]; }
-function getKey(p,d) { return p+'_'+d; }
-function semana(d) { return d<=7?1:d<=14?2:d<=21?3:4; }
-function inPeriod(d) { return currentPeriod==='all' || semana(d)===parseInt(currentPeriod); }
-function periodRange() {
-  var nd = parseInt(document.getElementById('numDias').value)||26;
-  if (currentPeriod==='all') return {s:1,e:nd};
+function S(){return estado[currentSetor];}
+function getKey(p,d){return p+'_'+d;}
+function semana(d){return d<=7?1:d<=14?2:d<=21?3:4;}
+function inPeriod(d){return currentPeriod==='all'||semana(d)===parseInt(currentPeriod);}
+function periodRange(){
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  if(currentPeriod==='all')return{s:1,e:nd};
   var s=[0,1,8,15,22][parseInt(currentPeriod)];
   var e=[0,7,14,21,nd][parseInt(currentPeriod)];
-  return {s:s, e:Math.min(e,nd)};
+  return{s:s,e:Math.min(e,nd)};
 }
-function getValorPessoa(pi) {
-  var def = parseInt(document.getElementById('valorDia').value)||130;
-  var v = S().valoresDia[pi];
-  return (v!=null && v!=='') ? parseInt(v) : def;
-}
-function getDescontoPessoa(pi) {
-  var v = S().descontos[pi];
-  return (v!=null && v!=='') ? parseInt(v) : 0;
+function getValorPessoa(pi){
+  var def=parseInt(document.getElementById('valorDia').value)||130;
+  var v=S().valoresDia[pi];
+  return(v!=null&&v!=='')?parseInt(v):def;
 }
 
 // ── EDIÇÃO GENÉRICA ───────────────────────────────────────
-function makeEditable(cellId, arrKey, pi, opts) {
-  var cell = document.getElementById(cellId);
-  if (!cell || cell.querySelector('input')) return;
-  var arr = S()[arrKey];
-  var cur = arr[pi] || '';
-  cell.classList.add(opts.editClass || 'editing');
-  var inp = document.createElement('input');
-  inp.className = 'editable-input ' + (opts.inputClass || '');
-  inp.value = cur; inp.maxLength = opts.maxLen || 40;
-  if (opts.type) inp.type = opts.type;
-  if (opts.placeholder) inp.placeholder = opts.placeholder;
-  cell.innerHTML = ''; cell.appendChild(inp); inp.focus(); inp.select();
-  function save() {
-    var v = inp.value.trim();
-    if (opts.type==='number') { var n=parseInt(v); v=(n&&!isNaN(n))?String(n):''; }
-    arr[pi] = v;
-    cell.classList.remove(opts.editClass || 'editing');
-    opts.render(cell, v);
-    if (opts.afterSave) opts.afterSave();
+function makeEditable(cellId,arrKey,pi,opts){
+  var cell=document.getElementById(cellId);
+  if(!cell||cell.querySelector('input'))return;
+  var arr=S()[arrKey];
+  var cur=arr[pi]||'';
+  cell.classList.add(opts.editClass||'editing');
+  var inp=document.createElement('input');
+  inp.className='editable-input '+(opts.inputClass||'');
+  inp.value=cur;inp.maxLength=opts.maxLen||40;
+  if(opts.type)inp.type=opts.type;
+  if(opts.placeholder)inp.placeholder=opts.placeholder;
+  cell.innerHTML='';cell.appendChild(inp);inp.focus();inp.select();
+  function save(){
+    var v=inp.value.trim();
+    if(opts.type==='number'){var n=parseInt(v);v=(n&&!isNaN(n))?String(n):'';}
+    arr[pi]=v;
+    cell.classList.remove(opts.editClass||'editing');
+    opts.render(cell,v);
+    if(opts.afterSave)opts.afterSave();
     scheduleSave();
   }
-  inp.addEventListener('blur', save);
-  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') inp.blur(); if(e.key==='Escape'){inp.value=cur;inp.blur();} });
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=cur;inp.blur();}});
 }
 
-function editName(pi) {
-  makeEditable('namecell_'+pi, 'nomes', pi, {maxLen:18,
-    render: function(c,v){ c.textContent=v||'Pessoa '+(pi+1); }});
-}
-function editDesconto(pi) {
-  makeEditable('desccell_'+pi, 'descontos', pi, {type:'number',maxLen:7,inputClass:'desc-input',editClass:'editing-desc',
-    render: function(c,v){ c.className=v?'desc-cell has-desc':'desc-cell'; c.textContent=v?'- R$ '+parseInt(v):'+ desc'; },
-    afterSave: updateSums});
-}
-function editPix(pi) {
-  makeEditable('pixcell_'+pi, 'pixes', pi, {maxLen:60,placeholder:'CPF, e-mail ou tel.',
-    render: function(c,v){ c.className=v?'pix-cell has-pix':'pix-cell'; c.textContent=v||'+ pix'; c.title=v||''; }});
-}
-function editValor(pi) {
-  makeEditable('valorcell_'+pi, 'valoresDia', pi, {type:'number',maxLen:6,inputClass:'valor-input',editClass:'editing-valor',
-    render: function(c,v){ var def=parseInt(document.getElementById('valorDia').value)||130; var val=v?parseInt(v):def; c.className=v?'valor-cell':'valor-cell default-valor'; c.textContent='R$ '+val; },
-    afterSave: updateSums});
-}
-function editObs(pi) {
-  makeEditable('obscell_'+pi, 'obs', pi, {maxLen:80,placeholder:'Anotação…',editClass:'editing-obs',
-    render: function(c,v){ c.className=v?'obs-cell has-obs':'obs-cell'; c.textContent=v||'+ obs'; c.title=v||''; }});
-}
+function editName(pi){makeEditable('namecell_'+pi,'nomes',pi,{maxLen:18,render:function(c,v){c.textContent=v||'Pessoa '+(pi+1);}});}
+function editCargo(pi){makeEditable('cargocell_'+pi,'cargos',pi,{maxLen:24,placeholder:'Ex: Garçom',render:function(c,v){c.className=v?'cargo-cell has-cargo':'cargo-cell';c.textContent=v||'+ cargo';c.title=v||'';}});}
+function editPix(pi){makeEditable('pixcell_'+pi,'pixes',pi,{maxLen:60,placeholder:'CPF, e-mail ou tel.',render:function(c,v){c.className=v?'pix-cell has-pix':'pix-cell';c.textContent=v||'+ pix';c.title=v||'';}});}
+function editValor(pi){makeEditable('valorcell_'+pi,'valoresDia',pi,{type:'number',maxLen:6,inputClass:'valor-input',editClass:'editing-valor',render:function(c,v){var def=parseInt(document.getElementById('valorDia').value)||130;var val=v?parseInt(v):def;c.className=v?'valor-cell':'valor-cell default-valor';c.textContent='R$ '+val;},afterSave:updateSums});}
+function editObs(pi){makeEditable('obscell_'+pi,'obs',pi,{maxLen:80,placeholder:'Anotação…',editClass:'editing-obs',render:function(c,v){c.className=v?'obs-cell has-obs':'obs-cell';c.textContent=v||'+ obs';c.title=v||'';}});}
 
 // ── BUILD TABLE ───────────────────────────────────────────
-function buildTable() {
-  var s = S();
-  var np  = Math.min(parseInt(document.getElementById('numPessoas').value)||15, NUM_MAX);
-  var nd  = parseInt(document.getElementById('numDias').value)||26;
-  var def = parseInt(document.getElementById('valorDia').value)||130;
+function buildTable(){
+  var s=S();
+  var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  var def=parseInt(document.getElementById('valorDia').value)||130;
 
-  while (s.nomes.length < NUM_MAX) s.nomes.push('Pessoa '+(s.nomes.length+1));
-  ['pixes','obs','valoresDia','descontos'].forEach(function(k){ while(s[k].length<NUM_MAX) s[k].push(''); });
+  while(s.nomes.length<NUM_MAX)s.nomes.push('Pessoa '+(s.nomes.length+1));
+  ['pixes','obs','valoresDia','cargos'].forEach(function(k){while(s[k].length<NUM_MAX)s[k].push('');});
 
-  var dias = ['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
-  var hRow = '<tr>'
-    + '<th class="th-left col-name">Pessoa</th>'
-    + '<th class="col-desc" style="color:#c0392b">Desconto</th>'
-    + '<th class="th-left col-pix" style="color:#1D9E75">Chave Pix</th>'
-    + '<th class="col-valor" style="color:#e07b00">Valor/dia</th>';
-  for (var d=1; d<=nd; d++) {
-    var ws = (d===8||d===15||d===22) ? 'week-sep' : '';
-    hRow += '<th class="col-day '+ws+'" data-day="'+d+'" title="Dia '+d+'">'+dias[(d-1)%7]+'</th>';
+  var dias=['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
+  var hRow='<tr>'
+    +'<th class="th-left col-name">Pessoa</th>'
+    +'<th class="th-left col-cargo" style="color:#b06000">Cargo</th>'
+    +'<th class="th-left col-pix" style="color:#1D9E75">Chave Pix</th>'
+    +'<th style="color:#e07b00" class="col-valor">Valor/dia</th>';
+  for(var d=1;d<=nd;d++){
+    var ws=d===8||d===15||d===22?'week-sep':'';
+    hRow+='<th class="col-day '+ws+'" data-day="'+d+'" title="Dia '+d+'">'+dias[(d-1)%7]+'</th>';
   }
-  hRow += '<th class="col-tot">Dias</th><th class="col-tot">Total</th>'
-        + '<th class="th-left col-obs" style="color:#6c63cc">Obs</th></tr>';
-  document.getElementById('thead').innerHTML = hRow;
+  hRow+='<th class="col-tot">Dias</th><th class="col-tot">Total</th><th class="th-left col-obs" style="color:#6c63cc">Obs</th></tr>';
+  document.getElementById('thead').innerHTML=hRow;
 
-  var bHtml = '';
-  for (var pi=0; pi<np; pi++) {
-    var vd   = s.valoresDia[pi] ? parseInt(s.valoresDia[pi]) : def;
-    var isC  = !!s.valoresDia[pi];
-    var desc = s.descontos[pi]  ? parseInt(s.descontos[pi])  : 0;
-    var hasD = !!s.descontos[pi];
-    bHtml += '<tr>'
-      + '<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+s.nomes[pi]+'</td>'
-      + '<td class="'+(hasD?'desc-cell has-desc':'desc-cell')+' col-desc" id="desccell_'+pi+'" onclick="editDesconto('+pi+')">'+(hasD?'- R$ '+desc:'+ desc')+'</td>'
-      + '<td class="'+(s.pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')">'+(s.pixes[pi]||'+ pix')+'</td>'
-      + '<td class="valor-cell'+(isC?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')">R$ '+vd+'</td>';
-    for (var d2=1; d2<=nd; d2++) {
-      var ws2 = (d2===8||d2===15||d2===22) ? 'week-sep-td' : '';
-      bHtml += '<td class="'+ws2+'" data-day="'+d2+'"><input type="checkbox" class="day-check" data-p="'+pi+'" data-d="'+d2+'" '+(s.checks[getKey(pi,d2)]?'checked':'')+'></td>';
+  var bHtml='';
+  for(var pi=0;pi<np;pi++){
+    var vd=s.valoresDia[pi]?parseInt(s.valoresDia[pi]):def;
+    var isC=!!s.valoresDia[pi];
+    bHtml+='<tr>'
+      +'<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+s.nomes[pi]+'</td>'
+      +'<td class="'+(s.cargos[pi]?'cargo-cell has-cargo':'cargo-cell')+' col-cargo" id="cargocell_'+pi+'" onclick="editCargo('+pi+')">'+(s.cargos[pi]||'+ cargo')+'</td>'
+      +'<td class="'+(s.pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')">'+(s.pixes[pi]||'+ pix')+'</td>'
+      +'<td class="valor-cell'+(isC?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')">R$ '+vd+'</td>';
+    for(var d2=1;d2<=nd;d2++){
+      var ws2=d2===8||d2===15||d2===22?'week-sep-td':'';
+      bHtml+='<td class="'+ws2+'" data-day="'+d2+'"><input type="checkbox" class="day-check" data-p="'+pi+'" data-d="'+d2+'" '+(s.checks[getKey(pi,d2)]?'checked':'')+'></td>';
     }
-    bHtml += '<td class="dias-cell" id="dias_'+pi+'">0</td>'
-           + '<td class="total-cell" id="tot_'+pi+'">R$ 0</td>'
-           + '<td class="'+(s.obs[pi]?'obs-cell has-obs':'obs-cell')+' col-obs" id="obscell_'+pi+'" onclick="editObs('+pi+')">'+(s.obs[pi]||'+ obs')+'</td>'
-           + '</tr>';
+    bHtml+='<td class="dias-cell" id="dias_'+pi+'">0</td>'
+      +'<td class="total-cell" id="tot_'+pi+'">R$ 0</td>'
+      +'<td class="'+(s.obs[pi]?'obs-cell has-obs':'obs-cell')+' col-obs" id="obscell_'+pi+'" onclick="editObs('+pi+')">'+(s.obs[pi]||'+ obs')+'</td>'
+      +'</tr>';
   }
-  document.getElementById('tbody').innerHTML = bHtml;
+  document.getElementById('tbody').innerHTML=bHtml;
 
-  var fRow = '<tr><td class="td-left">Pessoas/dia</td><td></td><td></td><td></td>';
-  for (var fd=1; fd<=nd; fd++) {
-    var ws3 = (fd===8||fd===15||fd===22) ? 'week-sep-td' : '';
-    fRow += '<td class="'+ws3+'" id="col_'+fd+'" data-day="'+fd+'">0</td>';
+  var fRow='<tr><td class="td-left">Pessoas/dia</td><td></td><td></td><td></td>';
+  for(var fd=1;fd<=nd;fd++){
+    var ws3=fd===8||fd===15||fd===22?'week-sep-td':'';
+    fRow+='<td class="'+ws3+'" id="col_'+fd+'" data-day="'+fd+'">0</td>';
   }
-  fRow += '<td id="foot_dias">0</td><td id="foot_total" class="grand">R$ 0</td><td></td></tr>';
-  document.getElementById('tfoot').innerHTML = fRow;
+  fRow+='<td id="foot_dias">0</td><td id="foot_total" class="grand">R$ 0</td><td></td></tr>';
+  document.getElementById('tfoot').innerHTML=fRow;
 
-  document.querySelectorAll('.day-check').forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      S().checks[getKey(parseInt(this.dataset.p), parseInt(this.dataset.d))] = this.checked;
-      updateSums(); scheduleSave();
+  document.querySelectorAll('.day-check').forEach(function(cb){
+    cb.addEventListener('change',function(){
+      S().checks[getKey(parseInt(this.dataset.p),parseInt(this.dataset.d))]=this.checked;
+      updateSums();scheduleSave();
     });
   });
-  setPeriod(currentPeriod, document.querySelector('[data-period="'+currentPeriod+'"]'));
+  setPeriod(currentPeriod,document.querySelector('[data-period="'+currentPeriod+'"]'));
 }
 
 // ── UPDATE SUMS ───────────────────────────────────────────
-function updateSums() {
-  var s  = S();
-  var np = Math.min(parseInt(document.getElementById('numPessoas').value)||15, NUM_MAX);
-  var nd = parseInt(document.getElementById('numDias').value)||26;
-  var r  = periodRange();
-  var gD=0, gT=0, maxS=0, minS=Infinity, maxI=0, minI=0;
-  var colD = new Array(nd+1).fill(0);
-  var sD=[0,0,0,0,0], sT=[0,0,0,0,0];
-
-  for (var pi=0; pi<np; pi++) {
-    var val  = getValorPessoa(pi);
-    var desc = getDescontoPessoa(pi);
-    var pD   = 0;
-    for (var d=1; d<=nd; d++) {
-      if (s.checks[getKey(pi,d)]) {
-        colD[d]++; sD[semana(d)]++; sT[semana(d)] += val;
-        if (d>=r.s && d<=r.e) pD++;
-      }
+function updateSums(){
+  var s=S();
+  var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  var r=periodRange();
+  var gD=0,gT=0,maxS=0,minS=Infinity,maxI=0,minI=0;
+  var colD=new Array(nd+1).fill(0);
+  var sD=[0,0,0,0,0],sT=[0,0,0,0,0];
+  for(var pi=0;pi<np;pi++){
+    var val=getValorPessoa(pi),pD=0;
+    for(var d=1;d<=nd;d++){
+      if(s.checks[getKey(pi,d)]){colD[d]++;sD[semana(d)]++;sT[semana(d)]+=val;if(d>=r.s&&d<=r.e)pD++;}
     }
-    var pT = Math.max(0, pD*val - desc);
-    document.getElementById('dias_'+pi).textContent = pD;
-    document.getElementById('tot_'+pi).textContent  = 'R$ '+pT.toLocaleString('pt-BR') + (desc>0?' (-R$'+desc+')':'');
-    gD += pD; gT += pT;
-    if (pT > maxS) { maxS=pT; maxI=pi; }
-    if (pT < minS) { minS=pT; minI=pi; }
+    var pT=pD*val;
+    document.getElementById('dias_'+pi).textContent=pD;
+    document.getElementById('tot_'+pi).textContent='R$ '+pT.toLocaleString('pt-BR');
+    gD+=pD;gT+=pT;
+    if(pT>maxS){maxS=pT;maxI=pi;}
+    if(pT<minS){minS=pT;minI=pi;}
   }
-
-  for (var d2=1; d2<=nd; d2++) { var el=document.getElementById('col_'+d2); if(el) el.textContent=colD[d2]; }
-  document.getElementById('foot_dias').textContent  = gD;
-  document.getElementById('foot_total').textContent = 'R$ '+gT.toLocaleString('pt-BR');
-  document.getElementById('sumTotal').textContent   = 'R$ '+gT.toLocaleString('pt-BR');
-  document.getElementById('sumDias').textContent    = gD;
-  document.getElementById('subDiasDetail').textContent = np+' pessoas';
-  document.getElementById('maxSal').textContent  = 'R$ '+maxS.toLocaleString('pt-BR');
-  document.getElementById('maxName').textContent = s.nomes[maxI]||'—';
-  document.getElementById('mediaSal').textContent= 'R$ '+(np>0?Math.round(gT/np):0).toLocaleString('pt-BR');
-  document.getElementById('minSal').textContent  = 'R$ '+(minS===Infinity?0:minS).toLocaleString('pt-BR');
-  document.getElementById('minName').textContent = s.nomes[minI]||'—';
-  document.getElementById('subPeriod').textContent = currentPeriod==='all'?'período completo':'semana '+currentPeriod;
-
-  var nd2  = parseInt(document.getElementById('numDias').value)||26;
-  var lbs  = ['Semana 1 (1–7)','Semana 2 (8–14)','Semana 3 (15–21)','Semana 4 (22–'+nd2+')'];
-  var maxP = Math.max.apply(null, sT.slice(1));
-  var html = '', tDA=0, tTA=0;
-  for (var w=1; w<=4; w++) {
-    tDA += sD[w]; tTA += sT[w];
-    var pct = maxP>0 ? Math.round(sT[w]/maxP*100) : 0;
-    html += '<tr><td>'+lbs[w-1]+'</td><td class="dias-col">'+sD[w]+'</td>'
-          + '<td class="tot-col">R$ '+sT[w].toLocaleString('pt-BR')+'</td>'
-          + '<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(sT[w]/np):0).toLocaleString('pt-BR')+'</td>'
-          + '<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+  for(var d2=1;d2<=nd;d2++){var el=document.getElementById('col_'+d2);if(el)el.textContent=colD[d2];}
+  document.getElementById('foot_dias').textContent=gD;
+  document.getElementById('foot_total').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumTotal').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumDias').textContent=gD;
+  document.getElementById('subDiasDetail').textContent=np+' pessoas';
+  document.getElementById('maxSal').textContent='R$ '+maxS.toLocaleString('pt-BR');
+  document.getElementById('maxName').textContent=s.nomes[maxI]||'—';
+  document.getElementById('mediaSal').textContent='R$ '+(np>0?Math.round(gT/np):0).toLocaleString('pt-BR');
+  document.getElementById('minSal').textContent='R$ '+(minS===Infinity?0:minS).toLocaleString('pt-BR');
+  document.getElementById('minName').textContent=s.nomes[minI]||'—';
+  document.getElementById('subPeriod').textContent=currentPeriod==='all'?'período completo':'semana '+currentPeriod;
+  var nd2=parseInt(document.getElementById('numDias').value)||26;
+  var lbs=['Semana 1 (1–7)','Semana 2 (8–14)','Semana 3 (15–21)','Semana 4 (22–'+nd2+')'];
+  var maxP=Math.max.apply(null,sT.slice(1));
+  var html='',tDA=0,tTA=0;
+  for(var w=1;w<=4;w++){
+    tDA+=sD[w];tTA+=sT[w];
+    var pct=maxP>0?Math.round(sT[w]/maxP*100):0;
+    html+='<tr><td>'+lbs[w-1]+'</td><td class="dias-col">'+sD[w]+'</td>'
+      +'<td class="tot-col">R$ '+sT[w].toLocaleString('pt-BR')+'</td>'
+      +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(sT[w]/np):0).toLocaleString('pt-BR')+'</td>'
+      +'<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
   }
-  html += '<tr style="font-weight:700;background:#fafaf7"><td>Total geral</td><td class="dias-col">'+tDA+'</td>'
-        + '<td class="tot-col">R$ '+tTA.toLocaleString('pt-BR')+'</td>'
-        + '<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(tTA/np):0).toLocaleString('pt-BR')+'</td><td></td></tr>';
-  document.getElementById('ps-body').innerHTML = html;
+  html+='<tr style="font-weight:700;background:#fafaf7"><td>Total geral</td><td class="dias-col">'+tDA+'</td>'
+    +'<td class="tot-col">R$ '+tTA.toLocaleString('pt-BR')+'</td>'
+    +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(tTA/np):0).toLocaleString('pt-BR')+'</td><td></td></tr>';
+  document.getElementById('ps-body').innerHTML=html;
 }
 
-function setPeriod(p, btn) {
-  currentPeriod = p;
-  document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-  var nd = parseInt(document.getElementById('numDias').value)||26;
-  for (var d=1; d<=nd; d++) {
-    var show = inPeriod(d);
-    document.querySelectorAll('[data-day="'+d+'"]').forEach(function(el){ el.style.display=show?'':'none'; });
+function setPeriod(p,btn){
+  currentPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  for(var d=1;d<=nd;d++){
+    var show=inPeriod(d);
+    document.querySelectorAll('[data-day="'+d+'"]').forEach(function(el){el.style.display=show?'':'none';});
   }
   updateSums();
 }
 
-function resetChecks() { S().checks={}; buildTable(); }
+function resetChecks(){S().checks={};buildTable();}
 
-async function resetAll() {
-  if (!confirm('Apagar todos os dados do setor '+CONFIG.SETORES[currentSetor].label+'?')) return;
+async function resetAll(){
+  if(!confirm('Apagar todos os dados do setor '+CONFIG.SETORES[currentSetor].label+'?'))return;
   initDefaults(currentSetor);
   document.getElementById('numPessoas').value=15;
   document.getElementById('valorDia').value=130;
   document.getElementById('numDias').value=26;
-  buildTable(); await saveToSheets();
+  buildTable();await saveToSheets();
 }
 
-document.getElementById('numPessoas').addEventListener('change', function(){ buildTable(); scheduleSave(); });
-document.getElementById('numDias').addEventListener('change',    function(){ buildTable(); scheduleSave(); });
-document.getElementById('valorDia').addEventListener('change',   function(){ updateSums(); scheduleSave(); });
+document.getElementById('numPessoas').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('numDias').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('valorDia').addEventListener('change',function(){updateSums();scheduleSave();});
 
 // ── EXPORT PDF ────────────────────────────────────────────
-function exportPDF() {
-  var s    = S();
-  var np   = Math.min(parseInt(document.getElementById('numPessoas').value)||15, NUM_MAX);
-  var nd   = parseInt(document.getElementById('numDias').value)||26;
-  var hoje = new Date().toLocaleDateString('pt-BR');
-  var setor= CONFIG.SETORES[currentSetor].label;
-  var hd   = ''; for(var d=1;d<=nd;d++) hd+='<th>'+d+'</th>';
-  var rows='', cT=new Array(nd+1).fill(0), sD=[0,0,0,0,0], sT=[0,0,0,0,0];
-  for (var pi=0; pi<np; pi++) {
-    var v=getValorPessoa(pi), dc=getDescontoPessoa(pi), tD=0, tV=0, cells='';
-    for (var d2=1; d2<=nd; d2++) {
-      var chk = !!s.checks[getKey(pi,d2)];
-      if (chk){ tD++; tV+=v; cT[d2]++; sD[semana(d2)]++; sT[semana(d2)]+=v; }
-      cells += '<td style="'+(chk?'background:#e6f7f1;color:#0F6E56;font-weight:700':'')+'">'+( chk?'✓':'')+'</td>';
+function exportPDF(){
+  var s=S();
+  var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  var hoje=new Date().toLocaleDateString('pt-BR');
+  var setor=CONFIG.SETORES[currentSetor].label;
+  var hd='';for(var d=1;d<=nd;d++)hd+='<th>'+d+'</th>';
+  var rows='',cT=new Array(nd+1).fill(0),sD=[0,0,0,0,0],sT=[0,0,0,0,0];
+  for(var pi=0;pi<np;pi++){
+    var v=getValorPessoa(pi),tD=0,tV=0,cells='';
+    for(var d2=1;d2<=nd;d2++){
+      var chk=!!s.checks[getKey(pi,d2)];
+      if(chk){tD++;tV+=v;cT[d2]++;sD[semana(d2)]++;sT[semana(d2)]+=v;}
+      cells+='<td style="'+(chk?'background:#e6f7f1;color:#0F6E56;font-weight:700':'')+'">'+( chk?'✓':'')+'</td>';
     }
-    var total = Math.max(0, tD*v - dc);
-    rows += '<tr>'
-      +'<td style="text-align:left;padding-left:6px;font-weight:600">'+s.nomes[pi]+'</td>'
-      +'<td style="color:#c0392b;font-weight:600;text-align:center">'+(dc>0?'- R$ '+dc:'—')+'</td>'
+    rows+='<tr><td style="text-align:left;padding-left:6px;font-weight:600">'+s.nomes[pi]+'</td>'
+      +'<td style="color:#8a4f00;font-size:8px">'+(s.cargos[pi]||'—')+'</td>'
       +'<td style="color:#0F6E56;font-size:7.5px">'+(s.pixes[pi]||'—')+'</td>'
       +'<td style="color:#e07b00;font-weight:600;text-align:right">R$ '+v+'</td>'
       +cells
       +'<td style="color:#555">'+tD+'</td>'
-      +'<td style="font-weight:700;color:#0F6E56">R$ '+total.toLocaleString('pt-BR')+'</td>'
-      +'<td style="color:#4a4580;font-size:8px;font-style:italic">'+(s.obs[pi]||'')+'</td>'
-      +'</tr>';
+      +'<td style="font-weight:700;color:#0F6E56">R$ '+tV.toLocaleString('pt-BR')+'</td>'
+      +'<td style="color:#4a4580;font-size:8px;font-style:italic">'+(s.obs[pi]||'')+'</td></tr>';
   }
-  var fC=''; for(var d3=1;d3<=nd;d3++) fC+='<td>'+cT[d3]+'</td>';
+  var fC='';for(var d3=1;d3<=nd;d3++)fC+='<td>'+cT[d3]+'</td>';
   var th='background:#0F6E56;color:#fff;padding:4px 3px;text-align:center;font-size:8px;';
   var td='padding:3px 2px;text-align:center;border-bottom:1px solid #eee;font-size:8px;';
-  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+setor+'</title>'
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+setor+'</title>'
     +'<style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{'+th+'}td{'+td+'}tr:nth-child(even) td{background:#fafaf7}@media print{.no-print{display:none}}</style></head><body>'
     +'<div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1D9E75">'
     +'<h1 style="font-size:15px;color:#0F6E56">💰 '+setor+'</h1>'
     +'<div style="font-size:9px;color:#888;text-align:right">Gerado em: '+hoje+'<br>'+np+' pessoas · '+nd+' dias</div></div>'
     +'<table><thead><tr>'
-    +'<th style="'+th+'text-align:left">Pessoa</th>'
-    +'<th style="'+th+'text-align:center;color:#ffaaaa">Desconto</th>'
-    +'<th style="'+th+'text-align:left">Pix</th>'
-    +'<th style="'+th+'text-align:right">R$/dia</th>'
+    +'<th style="'+th+'text-align:left">Pessoa</th><th style="'+th+'text-align:left">Cargo</th>'
+    +'<th style="'+th+'text-align:left">Pix</th><th style="'+th+'text-align:right">R$/dia</th>'
     +hd+'<th>Dias</th><th>Total</th><th style="'+th+'text-align:left">Obs</th>'
     +'</tr></thead><tbody>'+rows+'</tbody>'
-    +'<tfoot><tr style="background:#f5f5f0">'
-    +'<td style="font-weight:700;'+td+'">Total/dia</td>'
+    +'<tfoot><tr style="background:#f5f5f0"><td style="font-weight:700;'+td+'">Total/dia</td>'
     +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'+fC
-    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'
-    +'</tr></tfoot></table>'
+    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td></tr></tfoot></table>'
     +'<div class="no-print" style="margin-top:16px;text-align:center">'
     +'<button onclick="window.print()" style="padding:8px 24px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨️ Imprimir / Salvar PDF</button>'
     +'</div></body></html>';
-  var blob = new Blob([html],{type:'text/html'});
-  var a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.target='_blank'; a.rel='noopener'; a.click();
+  var blob=new Blob([html],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.target='_blank';a.rel='noopener';a.click();
 }
 </script>
 </body>
