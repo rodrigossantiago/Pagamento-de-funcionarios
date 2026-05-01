@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -14,6 +15,7 @@
       {id:'narguile',  label:'💨 Narguile',  sheet:'Narguile'},
       {id:'limpeza',   label:'🧹 Limpeza',   sheet:'Limpeza'},
       {id:'seguranca', label:'🔒 Segurança', sheet:'Seguranca'},
+    // desconto por pessoa fica em s.descontos[]
     ]
   };
 </script>
@@ -90,7 +92,8 @@ td.editing-valor{background:#fff8ee!important}
 td.editing-obs{background:#f5f3ff!important}
 .pix-cell,.obs-cell,.cargo-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pix-cell.has-pix{color:#0F6E56;font-weight:500}
-.cargo-cell.has-cargo{color:#8a4f00;font-weight:500}
+.desc-cell{text-align:center!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap}
+.desc-cell.has-desc{color:#c0392b;font-weight:600}
 .obs-cell.has-obs{color:#4a4580}
 .valor-cell{cursor:pointer;font-size:11px;color:#e07b00;font-weight:600}
 .valor-cell.default-valor{color:#b4b2a9;font-weight:400}
@@ -216,7 +219,7 @@ var SETOR_KEY='pagamento_setor';
 
 // estado por setor: array indexado por setor
 var estado=CONFIG.SETORES.map(function(){
-  return {nomes:[],pixes:[],obs:[],valoresDia:[],cargos:[],checks:{},
+  return {nomes:[],pixes:[],obs:[],valoresDia:[],descontos:[],checks:{},
           numPessoas:15,valorDia:130,numDias:26};
 });
 
@@ -276,10 +279,10 @@ function loadCurrentConfig(){
 
 function initDefaults(idx){
   var s=estado[idx];
-  s.nomes=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.cargos=[];s.checks={};
+  s.nomes=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.descontos=[];s.checks={};
   for(var i=0;i<NUM_MAX;i++){
     s.nomes.push('Pessoa '+(i+1));s.pixes.push('');
-    s.obs.push('');s.valoresDia.push('');s.cargos.push('');
+    s.obs.push('');s.valoresDia.push('');s.descontos.push('');
   }
 }
 
@@ -415,7 +418,7 @@ async function loadFromSheets(idx){
     rows.forEach(function(row,i){
       if(i>=NUM_MAX)return;
       s.nomes[i]=row[0]||s.nomes[i];
-      s.cargos[i]=row[1]||'';
+      s.descontos[i]=row[1]||'';
       s.pixes[i]=row[2]||'';
       s.valoresDia[i]=row[3]||'';
       s.obs[i]=row[4]||'';
@@ -443,13 +446,13 @@ async function saveToSheets(){
     for(var i=0;i<np;i++){
       var pc={};
       Object.keys(s.checks).forEach(function(k){if(k.startsWith(i+'_'))pc[k]=s.checks[k];});
-      rows.push([s.nomes[i]||'',s.cargos[i]||'',s.pixes[i]||'',
+      rows.push([s.nomes[i]||'',s.descontos[i]||'',s.pixes[i]||'',
                  s.valoresDia[i]||'',s.obs[i]||'',JSON.stringify(pc)]);
     }
     await sheetsBatchUpdate([
-      {range:R(idx,'A1:C1'),       values:[[np,s.valorDia,s.numDias]]},
-      {range:R(idx,'A2:F2'),       values:[['Nome','Cargo','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
-      {range:R(idx,'A3:F'+(2+np)),values:rows}
+      {range:R(idx,'A1:C1'),        values:[[np,s.valorDia,s.numDias]]},
+      {range:R(idx,'A2:F2'),        values:[['Nome','Desconto (R$)','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
+      {range:R(idx,'A3:F'+(2+np)), values:rows}
     ]);
     setBadge('saved');
   }catch(e){
@@ -505,6 +508,10 @@ function getValorPessoa(pi){
   var v=S().valoresDia[pi];
   return(v!=null&&v!=='')?parseInt(v):def;
 }
+function getDescontoPessoa(pi){
+  var v=S().descontos[pi];
+  return(v!=null&&v!=='')?parseInt(v):0;
+}
 
 // ── EDIÇÃO GENÉRICA ───────────────────────────────────────
 function makeEditable(cellId,arrKey,pi,opts){
@@ -533,7 +540,7 @@ function makeEditable(cellId,arrKey,pi,opts){
 }
 
 function editName(pi){makeEditable('namecell_'+pi,'nomes',pi,{maxLen:18,render:function(c,v){c.textContent=v||'Pessoa '+(pi+1);}});}
-function editCargo(pi){makeEditable('cargocell_'+pi,'cargos',pi,{maxLen:24,placeholder:'Ex: Garçom',render:function(c,v){c.className=v?'cargo-cell has-cargo':'cargo-cell';c.textContent=v||'+ cargo';c.title=v||'';}});}
+function editDesconto(pi){makeEditable('desccell_'+pi,'descontos',pi,{type:'number',maxLen:7,inputClass:'valor-input',editClass:'editing-valor',render:function(c,v){c.className=v?'desc-cell has-desc':'desc-cell';c.textContent=v?'- R$ '+parseInt(v):'+ desc';c.title=v?'Desconto: R$ '+parseInt(v):'Adicionar desconto';},afterSave:updateSums});}
 function editPix(pi){makeEditable('pixcell_'+pi,'pixes',pi,{maxLen:60,placeholder:'CPF, e-mail ou tel.',render:function(c,v){c.className=v?'pix-cell has-pix':'pix-cell';c.textContent=v||'+ pix';c.title=v||'';}});}
 function editValor(pi){makeEditable('valorcell_'+pi,'valoresDia',pi,{type:'number',maxLen:6,inputClass:'valor-input',editClass:'editing-valor',render:function(c,v){var def=parseInt(document.getElementById('valorDia').value)||130;var val=v?parseInt(v):def;c.className=v?'valor-cell':'valor-cell default-valor';c.textContent='R$ '+val;},afterSave:updateSums});}
 function editObs(pi){makeEditable('obscell_'+pi,'obs',pi,{maxLen:80,placeholder:'Anotação…',editClass:'editing-obs',render:function(c,v){c.className=v?'obs-cell has-obs':'obs-cell';c.textContent=v||'+ obs';c.title=v||'';}});}
@@ -546,12 +553,12 @@ function buildTable(){
   var def=parseInt(document.getElementById('valorDia').value)||130;
 
   while(s.nomes.length<NUM_MAX)s.nomes.push('Pessoa '+(s.nomes.length+1));
-  ['pixes','obs','valoresDia','cargos'].forEach(function(k){while(s[k].length<NUM_MAX)s[k].push('');});
+  ['pixes','obs','valoresDia','descontos'].forEach(function(k){while(s[k].length<NUM_MAX)s[k].push('');});
 
   var dias=['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
   var hRow='<tr>'
     +'<th class="th-left col-name">Pessoa</th>'
-    +'<th class="th-left col-cargo" style="color:#b06000">Cargo</th>'
+    +'<th style="color:#c0392b" class="col-cargo">Desconto</th>'
     +'<th class="th-left col-pix" style="color:#1D9E75">Chave Pix</th>'
     +'<th style="color:#e07b00" class="col-valor">Valor/dia</th>';
   for(var d=1;d<=nd;d++){
@@ -565,9 +572,11 @@ function buildTable(){
   for(var pi=0;pi<np;pi++){
     var vd=s.valoresDia[pi]?parseInt(s.valoresDia[pi]):def;
     var isC=!!s.valoresDia[pi];
+    var desc=s.descontos[pi]?parseInt(s.descontos[pi]):0;
+    var hasDesc=!!s.descontos[pi];
     bHtml+='<tr>'
       +'<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+s.nomes[pi]+'</td>'
-      +'<td class="'+(s.cargos[pi]?'cargo-cell has-cargo':'cargo-cell')+' col-cargo" id="cargocell_'+pi+'" onclick="editCargo('+pi+')">'+(s.cargos[pi]||'+ cargo')+'</td>'
+      +'<td class="'+(hasDesc?'desc-cell has-desc':'desc-cell')+' col-cargo" id="desccell_'+pi+'" onclick="editDesconto('+pi+')">'+(hasDesc?'- R$ '+desc:'+ desc')+'</td>'
       +'<td class="'+(s.pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')">'+(s.pixes[pi]||'+ pix')+'</td>'
       +'<td class="valor-cell'+(isC?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')">R$ '+vd+'</td>';
     for(var d2=1;d2<=nd;d2++){
@@ -608,13 +617,125 @@ function updateSums(){
   var colD=new Array(nd+1).fill(0);
   var sD=[0,0,0,0,0],sT=[0,0,0,0,0];
   for(var pi=0;pi<np;pi++){
-    var val=getValorPessoa(pi),pD=0;
+    var val=getValorPessoa(pi),desc=getDescontoPessoa(pi),pD=0;
     for(var d=1;d<=nd;d++){
       if(s.checks[getKey(pi,d)]){colD[d]++;sD[semana(d)]++;sT[semana(d)]+=val;if(d>=r.s&&d<=r.e)pD++;}
     }
-    var pT=pD*val;
+    var pT=Math.max(0,pD*val-desc);
     document.getElementById('dias_'+pi).textContent=pD;
-    document.getElementById('tot_'+pi).textContent='R$ '+pT.toLocaleString('pt-BR');
+    document.getElementById('tot_'+pi).textContent='R$ '+pT.toLocaleString('pt-BR')+(desc>0?' (-R
+    gD+=pD;gT+=pT;
+    if(pT>maxS){maxS=pT;maxI=pi;}
+    if(pT<minS){minS=pT;minI=pi;}
+  }
+  for(var d2=1;d2<=nd;d2++){var el=document.getElementById('col_'+d2);if(el)el.textContent=colD[d2];}
+  document.getElementById('foot_dias').textContent=gD;
+  document.getElementById('foot_total').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumTotal').textContent='R$ '+gT.toLocaleString('pt-BR');
+  document.getElementById('sumDias').textContent=gD;
+  document.getElementById('subDiasDetail').textContent=np+' pessoas';
+  document.getElementById('maxSal').textContent='R$ '+maxS.toLocaleString('pt-BR');
+  document.getElementById('maxName').textContent=s.nomes[maxI]||'—';
+  document.getElementById('mediaSal').textContent='R$ '+(np>0?Math.round(gT/np):0).toLocaleString('pt-BR');
+  document.getElementById('minSal').textContent='R$ '+(minS===Infinity?0:minS).toLocaleString('pt-BR');
+  document.getElementById('minName').textContent=s.nomes[minI]||'—';
+  document.getElementById('subPeriod').textContent=currentPeriod==='all'?'período completo':'semana '+currentPeriod;
+  var nd2=parseInt(document.getElementById('numDias').value)||26;
+  var lbs=['Semana 1 (1–7)','Semana 2 (8–14)','Semana 3 (15–21)','Semana 4 (22–'+nd2+')'];
+  var maxP=Math.max.apply(null,sT.slice(1));
+  var html='',tDA=0,tTA=0;
+  for(var w=1;w<=4;w++){
+    tDA+=sD[w];tTA+=sT[w];
+    var pct=maxP>0?Math.round(sT[w]/maxP*100):0;
+    html+='<tr><td>'+lbs[w-1]+'</td><td class="dias-col">'+sD[w]+'</td>'
+      +'<td class="tot-col">R$ '+sT[w].toLocaleString('pt-BR')+'</td>'
+      +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(sT[w]/np):0).toLocaleString('pt-BR')+'</td>'
+      +'<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+  }
+  html+='<tr style="font-weight:700;background:#fafaf7"><td>Total geral</td><td class="dias-col">'+tDA+'</td>'
+    +'<td class="tot-col">R$ '+tTA.toLocaleString('pt-BR')+'</td>'
+    +'<td class="tot-col" style="color:#888780;font-weight:400">R$ '+(np>0?Math.round(tTA/np):0).toLocaleString('pt-BR')+'</td><td></td></tr>';
+  document.getElementById('ps-body').innerHTML=html;
+}
+
+function setPeriod(p,btn){
+  currentPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  for(var d=1;d<=nd;d++){
+    var show=inPeriod(d);
+    document.querySelectorAll('[data-day="'+d+'"]').forEach(function(el){el.style.display=show?'':'none';});
+  }
+  updateSums();
+}
+
+function resetChecks(){S().checks={};buildTable();}
+
+async function resetAll(){
+  if(!confirm('Apagar todos os dados do setor '+CONFIG.SETORES[currentSetor].label+'?'))return;
+  initDefaults(currentSetor);
+  document.getElementById('numPessoas').value=15;
+  document.getElementById('valorDia').value=130;
+  document.getElementById('numDias').value=26;
+  buildTable();await saveToSheets();
+}
+
+document.getElementById('numPessoas').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('numDias').addEventListener('change',function(){buildTable();scheduleSave();});
+document.getElementById('valorDia').addEventListener('change',function(){updateSums();scheduleSave();});
+
+// ── EXPORT PDF ────────────────────────────────────────────
+function exportPDF(){
+  var s=S();
+  var np=Math.min(parseInt(document.getElementById('numPessoas').value)||15,NUM_MAX);
+  var nd=parseInt(document.getElementById('numDias').value)||26;
+  var hoje=new Date().toLocaleDateString('pt-BR');
+  var setor=CONFIG.SETORES[currentSetor].label;
+  var hd='';for(var d=1;d<=nd;d++)hd+='<th>'+d+'</th>';
+  var rows='',cT=new Array(nd+1).fill(0),sD=[0,0,0,0,0],sT=[0,0,0,0,0];
+  for(var pi=0;pi<np;pi++){
+    var v=getValorPessoa(pi),tD=0,tV=0,cells='';
+    for(var d2=1;d2<=nd;d2++){
+      var chk=!!s.checks[getKey(pi,d2)];
+      if(chk){tD++;tV+=v;cT[d2]++;sD[semana(d2)]++;sT[semana(d2)]+=v;}
+      cells+='<td style="'+(chk?'background:#e6f7f1;color:#0F6E56;font-weight:700':'')+'">'+( chk?'✓':'')+'</td>';
+    }
+    rows+='<tr><td style="text-align:left;padding-left:6px;font-weight:600">'+s.nomes[pi]+'</td>'
+      +'<td style="color:#c0392b;font-weight:600;text-align:center">'+(s.descontos[pi]?'- R$ '+parseInt(s.descontos[pi]):'—')+'</td>'
+      +'<td style="color:#0F6E56;font-size:7.5px">'+(s.pixes[pi]||'—')+'</td>'
+      +'<td style="color:#e07b00;font-weight:600;text-align:right">R$ '+v+'</td>'
+      +cells
+      +'<td style="color:#555">'+tD+'</td>'
+      +'<td style="font-weight:700;color:#0F6E56">R$ '+tV.toLocaleString('pt-BR')+'</td>'
+      +'<td style="color:#4a4580;font-size:8px;font-style:italic">'+(s.obs[pi]||'')+'</td></tr>';
+  }
+  var fC='';for(var d3=1;d3<=nd;d3++)fC+='<td>'+cT[d3]+'</td>';
+  var th='background:#0F6E56;color:#fff;padding:4px 3px;text-align:center;font-size:8px;';
+  var td='padding:3px 2px;text-align:center;border-bottom:1px solid #eee;font-size:8px;';
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>'+setor+'</title>'
+    +'<style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{'+th+'}td{'+td+'}tr:nth-child(even) td{background:#fafaf7}@media print{.no-print{display:none}}</style></head><body>'
+    +'<div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1D9E75">'
+    +'<h1 style="font-size:15px;color:#0F6E56">💰 '+setor+'</h1>'
+    +'<div style="font-size:9px;color:#888;text-align:right">Gerado em: '+hoje+'<br>'+np+' pessoas · '+nd+' dias</div></div>'
+    +'<table><thead><tr>'
+    +'<th style="'+th+'text-align:left">Pessoa</th><th style="'+th+'text-align:center;color:#ffaaaa">Desconto</th>'
+    +'<th style="'+th+'text-align:left">Pix</th><th style="'+th+'text-align:right">R$/dia</th>'
+    +hd+'<th>Dias</th><th>Total</th><th style="'+th+'text-align:left">Obs</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody>'
+    +'<tfoot><tr style="background:#f5f5f0"><td style="font-weight:700;'+td+'">Total/dia</td>'
+    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'+fC
+    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td></tr></tfoot></table>'
+    +'<div class="no-print" style="margin-top:16px;text-align:center">'
+    +'<button onclick="window.print()" style="padding:8px 24px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨️ Imprimir / Salvar PDF</button>'
+    +'</div></body></html>';
+  var blob=new Blob([html],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.target='_blank';a.rel='noopener';a.click();
+}
+</script>
+</body>
+</html>
++desc+')':'');
     gD+=pD;gT+=pT;
     if(pT>maxS){maxS=pT;maxI=pi;}
     if(pT<minS){minS=pT;minI=pi;}
