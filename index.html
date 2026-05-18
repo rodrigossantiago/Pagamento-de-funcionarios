@@ -63,19 +63,21 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{font-size:10px;font-weight:500;color:#888780;text-align:center;padding:7px 2px;border-bottom:1px solid #e8e8e2;background:#fafaf7;position:sticky;top:0;white-space:nowrap}
 thead th.th-left{text-align:left;padding-left:10px}
 thead th.week-sep{border-left:2px solid #e8e8e2}
-.col-name{width:90px}.col-desc{width:72px}.col-pix{width:100px}.col-valor{width:70px}.col-obs{width:130px}.col-day{width:26px}.col-tot{width:65px}
+.col-name{width:85px}.col-cargo{width:80px}.col-desc{width:68px}.col-pix{width:95px}.col-valor{width:65px}.col-obs{width:120px}.col-day{width:25px}.col-tot{width:62px}
 tbody td{text-align:center;padding:4px 2px;border-bottom:1px solid #f1f0ea;vertical-align:middle}
-tbody td.td-left{text-align:left;padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+tbody td.td-left{text-align:left;padding-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 tbody tr:hover td{background:#f9f9f5}
-.editable-input{font-size:11px;font-family:inherit;border:none;border-bottom:1.5px solid #1D9E75;outline:none;background:transparent;color:#1a1a18;width:78px}
-.valor-input{border-bottom-color:#e07b00;text-align:right;width:56px}
-.desc-input{border-bottom-color:#c0392b;text-align:right;width:56px}
+.editable-input{font-size:11px;font-family:inherit;border:none;border-bottom:1.5px solid #1D9E75;outline:none;background:transparent;color:#1a1a18;width:72px}
+.valor-input{border-bottom-color:#e07b00;text-align:right;width:54px}
+.desc-input{border-bottom-color:#c0392b;text-align:right;width:54px}
 td.editing{background:#f0faf6!important}
 td.editing-valor{background:#fff8ee!important}
 td.editing-desc{background:#fff0f0!important}
 td.editing-obs{background:#f5f3ff!important}
 .pix-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pix-cell.has-pix{color:#0F6E56;font-weight:500}
+.cargo-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cargo-cell.has-cargo{color:#8a4f00;font-weight:500}
 .desc-cell{cursor:pointer;color:#c8c5bc;font-size:11px;text-align:center!important}
 .desc-cell.has-desc{color:#c0392b;font-weight:600}
 .obs-cell{text-align:left!important;padding-left:6px!important;cursor:pointer;color:#c8c5bc;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -196,8 +198,9 @@ var TOKEN_KEY = 'pagamento_gtoken';
 var PROFILE_KEY = 'pagamento_gprofile';
 var SETOR_KEY = 'pagamento_setor';
 
+// estado agora inclui: nomes, cargos, descontos, pixes, valoresDia, obs, checks
 var estado = CONFIG.SETORES.map(function() {
-  return {nomes:[],pixes:[],obs:[],valoresDia:[],descontos:[],checks:{},
+  return {nomes:[],cargos:[],descontos:[],pixes:[],obs:[],valoresDia:[],checks:{},
           numPessoas:15,valorDia:130,numDias:26};
 });
 
@@ -252,10 +255,10 @@ function loadCurrentConfig() {
 
 function initDefaults(idx) {
   var s = estado[idx];
-  s.nomes=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.descontos=[];s.checks={};
+  s.nomes=[];s.cargos=[];s.descontos=[];s.pixes=[];s.obs=[];s.valoresDia=[];s.checks={};
   for (var i = 0; i < NUM_MAX; i++) {
     s.nomes.push('Pessoa '+(i+1));
-    s.pixes.push('');s.obs.push('');s.valoresDia.push('');s.descontos.push('');
+    s.cargos.push('');s.descontos.push('');s.pixes.push('');s.obs.push('');s.valoresDia.push('');
   }
 }
 
@@ -340,12 +343,10 @@ function scheduleTokenRenewal() {
   } catch(e) {}
 }
 
-function showError(msg) {
-  var el = document.getElementById('loginError');
-  el.textContent = msg; el.style.display = 'block';
-}
+function showError(msg) { var el=document.getElementById('loginError'); el.textContent=msg; el.style.display='block'; }
 
 // ── SHEETS API ────────────────────────────────────────────
+// Colunas na planilha: A=Nome, B=Cargo, C=Desconto, D=Pix, E=Valor/dia, F=Obs, G=Checks
 function R(idx, a1) { return CONFIG.SETORES[idx].sheet + '!' + a1; }
 
 function sheetsGet(range) {
@@ -387,16 +388,18 @@ async function loadFromSheets(idx) {
     if (cfgRow[1]) s.valorDia   = parseInt(cfgRow[1]);
     if (cfgRow[2]) s.numDias    = parseInt(cfgRow[2]);
 
-    var ppl = await sheetsGet(R(idx, 'A3:F'));
+    // lê até coluna G (7 colunas): Nome,Cargo,Desconto,Pix,Valor/dia,Obs,Checks
+    var ppl = await sheetsGet(R(idx, 'A3:G'));
     var rows = ppl.values || [];
     rows.forEach(function(row, i) {
       if (i >= NUM_MAX) return;
       s.nomes[i]     = row[0] || s.nomes[i];
-      s.descontos[i] = row[1] || '';
-      s.pixes[i]     = row[2] || '';
-      s.valoresDia[i]= row[3] || '';
-      s.obs[i]       = row[4] || '';
-      try { if (row[5]) Object.assign(s.checks, JSON.parse(row[5])); } catch(e) {}
+      s.cargos[i]    = row[1] || '';
+      s.descontos[i] = row[2] || '';
+      s.pixes[i]     = row[3] || '';
+      s.valoresDia[i]= row[4] || '';
+      s.obs[i]       = row[5] || '';
+      try { if (row[6]) Object.assign(s.checks, JSON.parse(row[6])); } catch(e) {}
     });
     if (idx === currentSetor) { loadCurrentConfig(); buildTable(); }
     setBadge('saved');
@@ -420,13 +423,16 @@ async function saveToSheets() {
     for (var i = 0; i < np; i++) {
       var pc = {};
       Object.keys(s.checks).forEach(function(k){ if(k.startsWith(i+'_')) pc[k]=s.checks[k]; });
-      rows.push([s.nomes[i]||'', s.descontos[i]||'', s.pixes[i]||'',
-                 s.valoresDia[i]||'', s.obs[i]||'', JSON.stringify(pc)]);
+      rows.push([
+        s.nomes[i]||'', s.cargos[i]||'', s.descontos[i]||'',
+        s.pixes[i]||'', s.valoresDia[i]||'', s.obs[i]||'',
+        JSON.stringify(pc)
+      ]);
     }
     await sheetsBatchUpdate([
       {range: R(idx,'A1:C1'),        values: [[np, s.valorDia, s.numDias]]},
-      {range: R(idx,'A2:F2'),        values: [['Nome','Desconto (R$)','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
-      {range: R(idx,'A3:F'+(2+np)), values: rows}
+      {range: R(idx,'A2:G2'),        values: [['Nome','Cargo','Desconto (R$)','Chave Pix','Valor/dia','Observação','Presença (JSON)']]},
+      {range: R(idx,'A3:G'+(2+np)), values: rows}
     ]);
     setBadge('saved');
   } catch(e) {
@@ -450,9 +456,9 @@ function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveTo
 function setBadge(st) {
   var b = document.getElementById('saveBadge'); if (!b) return;
   if (st==='saving')  { b.textContent='⏳ Salvando…';   b.className='save-badge saving'; }
-  else if (st==='saved')  { b.textContent='✓ Salvo';        b.className='save-badge'; }
-  else if (st==='loading'){ b.textContent='⬇ Carregando…'; b.className='save-badge saving'; }
-  else                    { b.textContent='⚠ Erro';         b.className='save-badge error'; }
+  else if (st==='saved')   { b.textContent='✓ Salvo';        b.className='save-badge'; }
+  else if (st==='loading') { b.textContent='⬇ Carregando…'; b.className='save-badge saving'; }
+  else                     { b.textContent='⚠ Erro';         b.className='save-badge error'; }
 }
 
 function showLoading(msg) { document.getElementById('loadingMsg').textContent=msg||'Carregando…'; document.getElementById('loadingOverlay').style.display='flex'; }
@@ -511,6 +517,10 @@ function editName(pi) {
   makeEditable('namecell_'+pi, 'nomes', pi, {maxLen:18,
     render:function(c,v){ c.textContent=v||'Pessoa '+(pi+1); }});
 }
+function editCargo(pi) {
+  makeEditable('cargocell_'+pi, 'cargos', pi, {maxLen:24, placeholder:'Ex: Garçom',
+    render:function(c,v){ c.className=v?'cargo-cell has-cargo':'cargo-cell'; c.textContent=v||'+ cargo'; c.title=v||''; }});
+}
 function editDesconto(pi) {
   makeEditable('desccell_'+pi, 'descontos', pi, {
     type:'number', maxLen:7, inputClass:'desc-input', editClass:'editing-desc',
@@ -546,11 +556,12 @@ function buildTable() {
   var def = parseInt(document.getElementById('valorDia').value)||130;
 
   while (s.nomes.length < NUM_MAX) s.nomes.push('Pessoa '+(s.nomes.length+1));
-  ['pixes','obs','valoresDia','descontos'].forEach(function(k){ while(s[k].length<NUM_MAX) s[k].push(''); });
+  ['cargos','descontos','pixes','obs','valoresDia'].forEach(function(k){ while(s[k].length<NUM_MAX) s[k].push(''); });
 
   var dias = ['Sex','Sáb','Dom','Seg','Ter','Qua','Qui'];
   var hRow = '<tr>'
     + '<th class="th-left col-name">Pessoa</th>'
+    + '<th class="th-left col-cargo" style="color:#b06000">Cargo</th>'
     + '<th class="col-desc" style="color:#c0392b">Desconto</th>'
     + '<th class="th-left col-pix" style="color:#1D9E75">Chave Pix</th>'
     + '<th class="col-valor" style="color:#e07b00">Valor/dia</th>';
@@ -570,6 +581,7 @@ function buildTable() {
     var hasD = !!s.descontos[pi];
     bHtml += '<tr>'
       + '<td class="td-left col-name" id="namecell_'+pi+'" onclick="editName('+pi+')">'+s.nomes[pi]+'</td>'
+      + '<td class="'+(s.cargos[pi]?'cargo-cell has-cargo':'cargo-cell')+' col-cargo" id="cargocell_'+pi+'" onclick="editCargo('+pi+')">'+(s.cargos[pi]||'+ cargo')+'</td>'
       + '<td class="'+(hasD?'desc-cell has-desc':'desc-cell')+' col-desc" id="desccell_'+pi+'" onclick="editDesconto('+pi+')">'+(hasD?'- R$ '+desc:'+ desc')+'</td>'
       + '<td class="'+(s.pixes[pi]?'pix-cell has-pix':'pix-cell')+' col-pix" id="pixcell_'+pi+'" onclick="editPix('+pi+')">'+(s.pixes[pi]||'+ pix')+'</td>'
       + '<td class="valor-cell'+(isC?'':' default-valor')+' col-valor" id="valorcell_'+pi+'" onclick="editValor('+pi+')">R$ '+vd+'</td>';
@@ -584,7 +596,7 @@ function buildTable() {
   }
   document.getElementById('tbody').innerHTML = bHtml;
 
-  var fRow = '<tr><td class="td-left">Pessoas/dia</td><td></td><td></td><td></td>';
+  var fRow = '<tr><td class="td-left">Pessoas/dia</td><td></td><td></td><td></td><td></td>';
   for (var fd=1; fd<=nd; fd++) {
     var ws3 = (fd===8||fd===15||fd===22) ? 'week-sep-td' : '';
     fRow += '<td class="'+ws3+'" id="col_'+fd+'" data-day="'+fd+'">0</td>';
@@ -706,6 +718,7 @@ function exportPDF() {
     var total = Math.max(0, tD*v - dc);
     rows += '<tr>'
       +'<td style="text-align:left;padding-left:6px;font-weight:600">'+s.nomes[pi]+'</td>'
+      +'<td style="text-align:left;color:#8a4f00;font-size:8px">'+(s.cargos[pi]||'—')+'</td>'
       +'<td style="color:#c0392b;font-weight:600;text-align:center">'+(dc>0?'- R$ '+dc:'—')+'</td>'
       +'<td style="color:#0F6E56;font-size:7.5px">'+(s.pixes[pi]||'—')+'</td>'
       +'<td style="color:#e07b00;font-weight:600;text-align:right">R$ '+v+'</td>'
@@ -725,6 +738,7 @@ function exportPDF() {
     +'<div style="font-size:9px;color:#888;text-align:right">Gerado em: '+hoje+'<br>'+np+' pessoas · '+nd+' dias</div></div>'
     +'<table><thead><tr>'
     +'<th style="'+th+'text-align:left">Pessoa</th>'
+    +'<th style="'+th+'text-align:left;color:#ffd090">Cargo</th>'
     +'<th style="'+th+'text-align:center;color:#ffaaaa">Desconto</th>'
     +'<th style="'+th+'text-align:left">Pix</th>'
     +'<th style="'+th+'text-align:right">R$/dia</th>'
@@ -732,7 +746,7 @@ function exportPDF() {
     +'</tr></thead><tbody>'+rows+'</tbody>'
     +'<tfoot><tr style="background:#f5f5f0">'
     +'<td style="font-weight:700;'+td+'">Total/dia</td>'
-    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'+fC
+    +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'+fC
     +'<td style="'+td+'"></td><td style="'+td+'"></td><td style="'+td+'"></td>'
     +'</tr></tfoot></table>'
     +'<div class="no-print" style="margin-top:16px;text-align:center">'
