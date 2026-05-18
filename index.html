@@ -398,8 +398,15 @@ async function loadFromSheets(idx) {
       s.descontos[i] = row[2] || '';
       s.pixes[i]     = row[3] || '';
       s.valoresDia[i]= row[4] || '';
-      s.obs[i]       = row[5] || '';
-      try { if (row[6]) Object.assign(s.checks, JSON.parse(row[6])); } catch(e) {}
+      // obs: só usa se não parecer JSON de checks
+      var rawObs = row[5] || '';
+      s.obs[i] = (rawObs && rawObs.trim().startsWith('{')) ? '' : rawObs;
+      // checks: tenta col G (índice 6), se falhar tenta col F (índice 5) como fallback
+      var checksRaw = row[6] || row[5] || '';
+      try {
+        if (checksRaw && checksRaw.trim().startsWith('{'))
+          Object.assign(s.checks, JSON.parse(checksRaw));
+      } catch(e) {}
     });
     if (idx === currentSetor) { loadCurrentConfig(); buildTable(); }
     setBadge('saved');
